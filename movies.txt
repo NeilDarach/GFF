@@ -1,0 +1,12 @@
+id
+name
+posterImage
+synopsis
+staring
+directedBy
+duration
+genre
+rating
+ratingReason
+trailerYoutubeId
+datesWithPublicShowing:

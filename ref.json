@@ -1,0 +1,22 @@
+{
+  "screens": {
+    "171": "GFT 1",
+    "172": "GFT 2",
+    "175": "GFT 3",
+    "228": "Cottiers",
+    "229": "Barras Art & Design (BAaD)",
+    "230": "Cineworld Screen 1",
+    "231": "Cineworld Screen 2",
+    "232": "CCA Cinema"
+  },
+  "strands": {
+    "855": "Country Focus",
+    "858": "Gala",
+    "828": "Our Story So Far",
+    "857": "FrightFest",
+    "860": "love is sweet oh!",
+    "862": "What Will The Men Wear",
+    "869": "Gestures of Memory: After the Archive",
+    "870": "Wild Flower, Flaming Star: The Films of Dolores Del Rio"
+  }
+}

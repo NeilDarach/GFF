@@ -1,0 +1,50 @@
+          [{
+            "id": "171",
+            "name": "GFT 1",
+            "showingBadgeIds": [
+              "549" ]
+          },
+          {
+            "id": "172",
+            "name": "GFT 2",
+            "showingBadgeIds": [
+              "549"
+            ]
+          },
+          {
+            "id": "175",
+            "name": "GFT 3",
+            "showingBadgeIds": [
+              "549"
+            ]
+          },
+          {
+            "id": "228",
+            "name": "Cottiers",
+            "showingBadgeIds": [
+              "583"
+            ]
+          },
+          {
+            "id": "229",
+            "name": "Barras Art & Design (BAaD)",
+            "showingBadgeIds": [
+              "583"
+            ]
+          },
+          {
+            "id": "230",
+            "name": "Cineworld Screen 1",
+            "showingBadgeIds": []
+          },
+          {
+            "id": "231",
+            "name": "Cineworld Screen 2",
+            "showingBadgeIds": []
+          },
+          {
+            "id": "232",
+            "name": "CCA Cinema",
+            "showingBadgeIds": []
+          }
+        ]

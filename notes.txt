@@ -1,0 +1,16 @@
+Expand the oringal json to one move record for each showing date
+cat allmovies.json | jq -r '.[] | . as $entry | .datesWithPublicShowing |  .[] | [ {"date":. } + $entry} ]' > bydate.json
+  movies2.json is just an array of movies with the top level stripped
+
+jq -r '. | map([.id, .date, (.name|tojson), .duration, (.synopsis|gsub("[\\n]"; " ")|tojson), (.starring|tojson), (.genre|tojson), (.allGenres|tojson), (.directedBy|tojson),(.rating|tojson), (.ratingReason|tojson)] | join(", ")) | join("\n")' bydate.json > bydate.csv
+
+
+id.txt pulls the data for each film individually with times, screens and badges
+
+jq -r '. | map([.id, .time, .screenId, (.movie.name|tojson), .movie.duration, (.movie.synopsis|gsub("[\\n]"; " ")|tojson), (.movie.starring|tojson), (.movie.genre|tojson), (.movie.allGenres|tojson), (.movie.directedBy|tojson),(.movie.rating|tojson), (.movie.ratingReason|tojson), .movie.trailerYoutubeId, (.showingBadgeIds|tojson)] | join(", ")) | join("\n")' movies-with-times-array.json > movies.csv
+
+
+jq -r --slurpfile screens screenmap.json --slurpfile strands strands.json '
+(reduce ($strands[][] | { (.id):.title }) as $e ({}; . + $e)) as $str | 
+(reduce ($screens[][] | { (.id):.name  }) as $e ({}; . + $e)) as $scr | 
+map([.id, .time, ($scr[.screenId]|tojson), (.movie.name|tojson), .movie.duration, (.movie.synopsis|gsub("[\\n]"; " ")|tojson), (.movie.starring|tojson), (.movie.genre|tojson), (.movie.allGenres|tojson), (.movie.directedBy|tojson),(.movie.rating|tojson), (.movie.ratingReason|tojson), ($str["870"]|tojson), .movie.trailerYoutubeId, (.showingBadgeIds|tojson)] | join(", ")) | join("\n")' movies-with-times-array.json > movies.csv

@@ -1,0 +1,29 @@
+{
+  "data": {
+    "showingsForDate": {
+      "data": [
+        {
+          "id": "138742",
+          "time": "2024-02-29T20:45:00Z",
+          "showingId": null,
+          "screenId": "230",
+          "originalScreenId": null,
+          "showing": null,
+          "showings": [],
+          "seatsRemaining": 140
+        },
+        {
+          "id": "138756",
+          "time": "2024-03-01T18:00:00Z",
+          "showingId": null,
+          "screenId": "230",
+          "originalScreenId": null,
+          "showing": null,
+          "showings": [],
+          "seatsRemaining": 140
+        }
+      ],
+      "resultVersion": "3827467154"
+    }
+  }
+}

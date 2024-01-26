@@ -1,0 +1,38 @@
+[{
+  "id": "138873",
+  "time": "2024-03-08T10:30:00Z",
+  "showingId": null,
+  "ticketsSold": 0,
+  "screenId": "171",
+  "movie": {
+    "id": "11224",
+    "name": "A History of Violence – 35mm",
+    "showingStatus": "On Sale",
+    "displayMetaData": "{\"magicSortValue\":204399900,\"daysShown\":43,\"nowPlayingOrHasPlayed\":false,\"someShowingsBadges\":[\"Our Story So Far\",\"Glasgow Film Festival 2024\",\"Accessible\",\"Free\"],\"everyShowingsBadges\":[\"Our Story So Far\",\"Glasgow Film Festival 2024\",\"Accessible\",\"Free\"],\"leavesSoon\":false,\"lastDayTomorrow\":false,\"lastDayToday\":false,\"classes\":\"title-class-gff-events some-showings-our-story-so-far some-showings-glasgow-film-festival-2024 some-showings-accessible some-showings-free every-showings-our-story-so-far every-showings-glasgow-film-festival-2024 every-showings-accessible every-showings-free showing-status-on-sale\"}",
+    "urlSlug": "a-history-of-violence-35mm",
+    "posterImage": "ljk241uco56vnva63v8saapx96cq",
+    "bannerImage": "xoqwtehe1ubbahivxoksuw2qhgej",
+    "synopsis": "PLEASE NOTE: this performance is free entry but tickets will only be issued from the Box Office on the day of the screening.\n\nAfter a family man is unexpectedly hailed a hero, a sinister stranger arrives in town who claims to know him, putting his past under scrutiny and his present under threat.\n\nTom (Viggo Mortensen) has a cosy family life in small-town Indiana with his wife (Maria Bello) and kids Jack and Sarah (Ashton Holme and Heidi Hayes). When Tom foils a robbery at his diner, he is hailed a hero, but the publicity sparks the arrival of a sinister stranger (Ed Harris), who claims to know him as a violent wise guy named “Joey”. David Cronenberg’s Oscar-nominated nail-biter spirals as the mystery gradually unravels with splashes of brutality and dark humour along the way. Beyond the central performances, William Hurt puts in a wonderful against-type and Oscar-nominated turn late in the film.",
+    "starring": "Viggo Mortensen, Maria Bello, Ed Harris",
+    "directedBy": "David Cronenberg",
+    "producedBy": "Chris Bender, J.C. Spink",
+    "duration": 96,
+    "genre": "Action",
+    "allGenres": "Crime, Drama",
+    "rating": "18",
+    "ratingReason": "Strong Language, Strong physical violence, Blood",
+    "trailerYoutubeId": "89oWVqLOXMw?si=PQugmogPbVxa95CB",
+    "releaseDate": null,
+    "titleClassId": "211"
+  },
+  "showing": null,
+  "showings": [],
+  "showingBadgeIds": [
+    "828",
+    "853",
+    "549",
+    "629"
+  ],
+  "seatsRemaining": 350
+}
+]
