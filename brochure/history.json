@@ -1,0 +1,20 @@
+{ 
+  "movie": {
+    "name": "A History of Violence",
+    "rating": "18",
+    "showings": [ { "screen": "GFT 1", "date": "8th March", "time": "10:30" },
+                  { "screen": "GFT 2", "date": "9th March", "time": "11:30"} ],
+    "image": "ljk241uco56vnva63v8saapx96cq.jpg",
+    "synopsis": "PLEASE NOTE: this performance is free entry but tickets will only be issued from the Box Office on the day of the screening.\nAfter a family man is unexpectedly hailed a hero, a sinister stranger arrives in town who claims to know him, putting his past under scrutiny and his present under threat."
+  }
+}
+{ 
+  "movie": {
+    "name": "A History of Violence",
+    "rating": "18",
+    "showings": [ { "screen": "GFT 1", "date": "8th March", "time": "10:30" },
+                  { "screen": "GFT 2", "date": "9th March", "time": "11:30"} ],
+    "image": "ljk241uco56vnva63v8saapx96cq.jpg",
+    "synopsis": "PLEASE NOTE: this performance is free entry but tickets will only be issued from the Box Office on the day of the screening.\nAfter a family man is unexpectedly hailed a hero, a sinister stranger arrives in town who claims to know him, putting his past under scrutiny and his present under threat."
+  }
+}

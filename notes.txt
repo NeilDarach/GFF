@@ -14,3 +14,9 @@ jq -r --slurpfile screens screenmap.json --slurpfile strands strands.json '
 (reduce ($strands[][] | { (.id):.title }) as $e ({}; . + $e)) as $str | 
 (reduce ($screens[][] | { (.id):.name  }) as $e ({}; . + $e)) as $scr | 
 map([.id, .time, ($scr[.screenId]|tojson), (.movie.name|tojson), .movie.duration, (.movie.synopsis|gsub("[\\n]"; " ")|tojson), (.movie.starring|tojson), (.movie.genre|tojson), (.movie.allGenres|tojson), (.movie.directedBy|tojson),(.movie.rating|tojson), (.movie.ratingReason|tojson), ($str["870"]|tojson), .movie.trailerYoutubeId, (.showingBadgeIds|tojson)] | join(", ")) | join("\n")' movies-with-times-array.json > movies.csv
+
+
+
+= Create the input for the brocure
+jq --slurpfile ref ref.json 'import "gff" as gff; . | gff::generateBrochure ' showings-array.json | jq -s "."
+
