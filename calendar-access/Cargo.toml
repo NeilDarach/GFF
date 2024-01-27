@@ -1,0 +1,16 @@
+[package]
+name = "calendar-access"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+google-calendar3 = "5.0.3"
+hyper = "^ 0.14"
+hyper-rustls = "0.24.0"
+serde = { version = "^ 1.0", features = ["derive"] }
+serde_json = "^ 1.0"
+tokio = { version = "^1.0", features = ["macros", "io-util", "rt", "rt-multi-thread", "fs"] }
+yup-oauth2 = "8.3.2"
+

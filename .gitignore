@@ -1,4 +1,7 @@
 *.swp
+.DS_Store
 node_modules
 credentials.json
 token.json
+tokencache.json
+target/
