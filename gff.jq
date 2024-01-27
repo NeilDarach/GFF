@@ -30,6 +30,13 @@ def calendarTime:
   fromdate | strftime("%l:%M %p") | ltrimstr(" ")
   ;
 
+def sortName:
+  if startswith("The ") then (.[4:]+", The") 
+  else if startswith("A ") then (.[2:]+", A") 
+  else if startswith("An ") then (.[3:]+", An") 
+  else . end end end
+  ;
+
 def calendarEndTime:
   # expect 2024-03-08T19:45:00Z
   # take 30
@@ -55,7 +62,7 @@ def brochureTime:
   ;
 
 def brochureDate: 
-  fromdate | strftime("%B ") + (strftime("%d") |  ltrimstr("0"))
+  fromdate | strftime("%a, %B ") + (strftime("%d") |  ltrimstr("0"))
   ;
 
 def youtubeUrl:
@@ -89,5 +96,5 @@ def tr:
   ;
 
 def generateBrochure:
-  group_by(.movie.id)[] | { "name": (.[0].movie.name), "showings": [.[] | { "screen": (.screenId|getScreen), "time": (.time|brochureTime), "date":(.time|brochureDate), "datetime":.time} ] | sort_by(.datetime), "duration": .[0].movie.duration, "synopsis": (first.movie.synopsis|gsub("______*";"____";"m")|tr), "starring": (first.movie.starring//""|tr), "genres": (first.movie | combineGenres), "directedBy":(first.movie.directedBy//""|tr), "rating":(first.movie.rating|tr), "ratingReason":(first.movie.ratingReason//""|tr), "strand":(first.showingBadgeIds|getStrand), "poster":(first.movie.posterImage|posterFile) }
+  group_by(.movie.id)[] | { "name": (.[0].movie.name), "sortname": (.[0].movie.name|sortName), "showings": [.[] | { "screen": (.screenId|getScreen), "time": (.time|brochureTime), "date":(.time|brochureDate), "datetime":.time} ] | sort_by(.datetime), "duration": .[0].movie.duration, "synopsis": (first.movie.synopsis|gsub("______*";"____";"m")|tr), "starring": (first.movie.starring//""|tr), "genres": (first.movie | combineGenres), "directedBy":(first.movie.directedBy//""|tr), "rating":(first.movie.rating|tr), "ratingReason":(first.movie.ratingReason//""|tr), "strand":(first.showingBadgeIds|getStrand), "poster":(first.movie.posterImage|posterFile) }
   ;

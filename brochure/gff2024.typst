@@ -2,11 +2,9 @@
 #set page(
   margin: (inside: 2.5cm, outside: 2cm, y: 1.75cm),
   footer: locate(loc => { 
-    let matches = query(<synopis>,loc)
-    let current = counter(page).at(loc)
-    let has-synopsis = matches.any(m => counter(page).at(m.location()) == current)
-    if not has-synopsis [
-      #if (calc.rem(loc.page(), 2)) != 0 [ GFF 2024 #h(1fr) #counter(page).display("1") ] else [ #counter(page).display("1") #h(1fr) GFF 2024 ] ]}),
+    let headings = query(selector(heading).before(loc),loc)
+    if headings != () { 
+      if (calc.rem(loc.page(), 2)) != 0 [ GFF 2024 #h(1fr) #counter(page).display("1") ] else [ #counter(page).display("1") #h(1fr) GFF 2024 ] } else { }}),
   number-align: center,
   )
 #set par(justify: true)
@@ -23,6 +21,7 @@
 #columns(2)[
 #let showFilm(film) = block(breakable: false)[
 #index[#film.name]
+#index[#film.sortname]
 = #film.name (#film.rating) \
 #if film.strand != "" [ #film.strand\ ]
 #text(size: 0.8em)[
@@ -44,7 +43,7 @@
 #v(1em)
 ]
 
-
+#label("synopsis")
 #for f in json("brochure.json") {
    showFilm(f) }
 ]

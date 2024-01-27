@@ -1,4 +1,5 @@
 *.swp
+*.pdf
 .DS_Store
 node_modules
 credentials.json
