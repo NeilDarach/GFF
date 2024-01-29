@@ -1,5 +1,4 @@
 use google_calendar3 as cal;
-use hyper_rustls;
 use yup_oauth2 as oauth2;
 use hyper::Client;
 use cal::Error;
@@ -21,13 +20,7 @@ async fn main() {
 
     let hub = cal::CalendarHub::new(client,auth);
 
-
-    let result = hub.events().list("c12717e59b8cbf4e58b2eb5b0fe0e8aa823cf71943cab642507715cd86db80f8@group.calendar.google.com")
-    //let result = hub.events().list("primary")
-        .doit()
-        .await;
-
-    let page_token = match result {
+    match all_events(&hub,"c12717e59b8cbf4e58b2eb5b0fe0e8aa823cf71943cab642507715cd86db80f8@group.calendar.google.com").await {
         Err(e) => match e {
             Error::HttpError(_) 
                 | Error::Io(_)
@@ -38,29 +31,35 @@ async fn main() {
                 | Error::Failure(_)
                 | Error::BadRequest(_)
                 | Error::FieldClash(_)
-                | Error::JsonDecodeError(_,_) => { println!("{}",e); None },
+                | Error::JsonDecodeError(_,_) => { println!("{}",e); },
         }
-            Ok(res) => { /*println!("Success: {:?}",res);*/ res.1.next_page_token },
-        };
-    if let Some(token) = page_token {
-      let result = hub.events().list("c12717e59b8cbf4e58b2eb5b0fe0e8aa823cf71943cab642507715cd86db80f8@group.calendar.google.com")
-        .page_token(&token)
-        .doit()
-        .await;
-    let page_token = match result {
-        Err(e) => match e {
-            Error::HttpError(_) 
-                | Error::Io(_)
-                | Error::MissingAPIKey
-                | Error::MissingToken(_)
-                | Error::Cancelled
-                | Error::UploadSizeLimitExceeded(_,_)
-                | Error::Failure(_)
-                | Error::BadRequest(_)
-                | Error::FieldClash(_)
-                | Error::JsonDecodeError(_,_) => { println!("{}",e); None },
-        }
-            Ok(res) => { println!("Success: {:?}",res.1.items.unwrap()); res.1.next_page_token },
+            Ok(events) => { println!("Got {} events", events.len()); 
+                            for e in events {
+                               println!("{:?} - {:?}",e.summary, e.description); } },
         };
     }
+
+pub async fn all_events(hub: &cal::CalendarHub<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>, cal_id: &str) -> Result<Vec<cal::api::Event>,Error> 
+{
+    let mut result = Vec::new();
+    let mut response;
+    response = hub.events().list(cal_id)
+        .doit()
+        .await?;
+    loop {
+      if let Some(mut items) = response.1.items {
+        result.append(&mut items);
+      };
+      if let Some(token) = response.1.next_page_token {
+        response = hub.events().list(cal_id)
+          .page_token(&token)
+          .doit()
+          .await?;
+      } else {
+          break; 
+      }
+    }
+
+    Ok(result)
 }
+      
