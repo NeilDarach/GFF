@@ -117,9 +117,7 @@ async fn main() -> Result<(), Error> {
                 event_struct.filter_by_id.get(&filter_id).unwrap(),
             )
             .await?;
-            // Update event
         } else {
-            // Create event
             add_filtered_event(&hub, evt).await?;
         }
     }
@@ -161,41 +159,8 @@ pub async fn update_filtered_event(
     orig: &Event,
     filter: &Event,
 ) -> Result<(), Error> {
-    println!(
-        "Considering update for {}",
-        filter.summary.as_ref().unwrap()
-    );
     let new_evt = populate_event(orig, Default::default());
-    let mut needs_update = false;
-    if get_source_id(&new_evt) != get_source_id(filter) {
-        println!(
-            "srcid {:?} vs {:?}",
-            get_source_id(&new_evt),
-            get_source_id(filter)
-        );
-        needs_update = true;
-    }
-    if new_evt.summary != filter.summary {
-        println!("{:?} vs {:?}", new_evt.summary, filter.summary);
-        needs_update = true;
-    }
-    if new_evt.start.as_ref().unwrap().date_time != filter.start.as_ref().unwrap().date_time {
-        println!(
-            "{:?} vs {:?}",
-            new_evt.start.as_ref().unwrap().date_time,
-            filter.start.as_ref().unwrap().date_time
-        );
-        needs_update = true;
-    }
-    if new_evt.end.as_ref().unwrap().date_time != filter.end.as_ref().unwrap().date_time {
-        println!(
-            "{:?} vs {:?}",
-            new_evt.end.as_ref().unwrap().date_time,
-            filter.end.as_ref().unwrap().date_time
-        );
-        needs_update = true;
-    }
-    if needs_update {
+    if is_different(&new_evt, filter) {
         println!("Updating {}", &new_evt.summary.as_ref().unwrap());
         hub.events()
             .update(new_evt, FILTERED_CALENDAR, filter.id.as_ref().unwrap())
@@ -205,6 +170,25 @@ pub async fn update_filtered_event(
         println!("Skipped update for {}", &new_evt.summary.unwrap());
     }
     Ok(())
+}
+
+pub fn is_different(evt1: &Event, evt2: &Event) -> bool {
+    if get_source_id(evt1) != get_source_id(evt2) {
+        return true;
+    }
+    if evt1.summary != evt2.summary {
+        return true;
+    }
+    if evt1.start.as_ref().unwrap().date_time != evt2.start.as_ref().unwrap().date_time {
+        return true;
+    }
+    if evt1.end.as_ref().unwrap().date_time != evt2.end.as_ref().unwrap().date_time {
+        return true;
+    }
+    if evt1.color_id != evt2.color_id {
+        return true;
+    }
+    false
 }
 
 pub fn set_source_id(evt: &mut Event, id: &str) {
@@ -241,9 +225,9 @@ pub fn populate_event(orig: &Event, mut filter: Event) -> Event {
 
     filter.summary =
         Some(format!("{} - {} - {}", title(orig), screen(orig), people(orig)).to_string());
+    filter.color_id = Some(color_id(orig).to_owned());
     filter.end = orig.end.clone();
     filter.start = orig.start.clone();
-    println!("Building new evt {}", &filter.summary.clone().unwrap());
     filter
 }
 
@@ -269,12 +253,31 @@ pub fn screen(evt: &Event) -> String {
             "Cineworld Screen 1" => "C1",
             "Cineworld Screen 2" => "C2",
             "Cottiers" => "Cot",
+            "Barras Art & Design (BAoD)" => "Barras",
             "CCA Cinema" => "CCA",
             _ => "?",
         })
         .to_owned()
     } else {
         "?".to_owned()
+    }
+}
+
+pub fn color_id(evt: &Event) -> &str {
+    if let Some(loc) = &evt.location {
+        match &loc[..] {
+            "GFT 1" => "1",
+            "GFT 2" => "2",
+            "GFT 3" => "3",
+            "Cineworld Screen 1" => "4",
+            "Cineworld Screen 2" => "5",
+            "Cottiers" => "6",
+            "Barras Art & Design (BAoD)" => "7",
+            "CCA Cinema" => "8",
+            _ => "10",
+        }
+    } else {
+        "10"
     }
 }
 
