@@ -11,6 +11,6 @@ hyper = "^ 0.14"
 hyper-rustls = "0.24.0"
 serde = { version = "^ 1.0", features = ["derive"] }
 serde_json = "^ 1.0"
-tokio = { version = "^1.0", features = ["macros", "io-util", "rt", "rt-multi-thread", "fs"] }
+tokio = { version = "^1.0", features = ["macros", "io-util", "rt", "rt-multi-thread", "fs", "sync"] }
 yup-oauth2 = "8.3.2"
 

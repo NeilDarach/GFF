@@ -2,6 +2,7 @@ use crate::oauth2::authenticator::Authenticator;
 use google_calendar3::api::Event;
 use google_calendar3::{CalendarHub, Error};
 use hyper::Client;
+use serde::Serialize;
 use std::collections::HashMap;
 
 static MAIN_CALENDAR: &str =
@@ -9,8 +10,9 @@ static MAIN_CALENDAR: &str =
 static FILTERED_CALENDAR: &str =
     "70ff6ebc2f94e898b99fa265e71b4d8cd7f2087728d78e9e75f537813b678974@group.calendar.google.com";
 
-#[derive(Default)]
+#[derive(Default, Serialize)]
 pub struct Events {
+    #[serde(skip_serializing)]
     hub: Option<CalendarHub<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>>,
     main_sync_token: Option<String>,
     filtered_sync_token: Option<String>,
