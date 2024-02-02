@@ -84,11 +84,16 @@ impl Events {
     }
 
     pub async fn load_filtered(&mut self) -> Result<(), Error> {
-        let (sync, events) = self.all_events(FILTERED_CALENDAR, None).await?;
+        let token = self.filtered_sync_token.clone();
+        let (sync, events) = self.all_events(FILTERED_CALENDAR, token).await?;
         self.filtered_sync_token = sync;
         for evt in events {
-            self.filter_by_id
-                .insert(evt.id.as_ref().unwrap().clone(), evt);
+            if Some("cancelled") == evt.status.as_deref() {
+                self.filter_by_id.remove(&evt.id.unwrap());
+            } else {
+                self.filter_by_id
+                    .insert(evt.id.as_ref().unwrap().clone(), evt);
+            }
         }
         Ok(())
     }
@@ -140,6 +145,9 @@ impl Events {
     pub async fn delete_filtered_events(&mut self) -> Result<(), Error> {
         if let Some(hub) = &self.hub {
             for id in self.ids_to_delete() {
+                if let Some(orig_id) = self.filter_to_orig.remove(&id) {
+                    self.orig_to_filter.remove(&orig_id);
+                }
                 hub.events().delete(FILTERED_CALENDAR, &id).doit().await?;
                 println!("Deleted id {}", id);
             }
@@ -176,6 +184,26 @@ impl Events {
         if let Some(hub) = &self.hub {
             let fevt = populate_event(evt, Default::default());
             hub.events().insert(fevt, FILTERED_CALENDAR).doit().await?;
+        }
+        Ok(())
+    }
+
+    pub async fn scan_calendar(&mut self) -> Result<(), Error> {
+        self.load_main().await?;
+        self.load_filtered().await?;
+        self.create_references();
+        self.delete_filtered_events().await?;
+        Ok(())
+    }
+
+    pub async fn update_filtered_events(&mut self) -> Result<(), Error> {
+        let events = self.events_with_description();
+        for evt in events {
+            if let Some(filter_id) = self.filtered_event_for(evt.id.as_ref().unwrap()) {
+                self.update_filtered_event(&evt, &filter_id).await?;
+            } else {
+                self.add_filtered_event(&evt).await?;
+            }
         }
         Ok(())
     }
@@ -292,7 +320,7 @@ pub fn people_from_string(description: &str) -> String {
     let mut vec = description
         .split(|c: char| !c.is_alphabetic())
         .map(|e| match e {
-            "Neil" | "Marion" | "Vanessa" | "Fi" | "Emmzi" => &e[0..1],
+            "Neil" | "Marion" | "Vanessa" | "Fi" | "Fiona" | "Emmzi" => &e[0..1],
             "Pam" => "Pm",
             "Patrick" => "Pt",
             _ => "",

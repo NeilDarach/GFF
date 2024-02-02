@@ -1,7 +1,15 @@
 use google_calendar3::Error;
+use hyper::service::{make_service_fn, service_fn};
+use hyper::{Body, Request, Response, Server};
+use std::convert::Infallible;
+use std::net::SocketAddr;
 use yup_oauth2 as oauth2;
 
 mod calendar;
+
+async fn ok_page(_req: Request<Body>) -> Result<Response<Body>, Infallible> {
+    Ok(Response::new("Working server".into()))
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -18,19 +26,14 @@ async fn main() -> Result<(), Error> {
     .await
     .unwrap();
 
-    let mut event_struct = calendar::Events::new(auth);
-    event_struct.load_main().await?;
-    event_struct.load_filtered().await?;
-    event_struct.create_references();
-    event_struct.delete_filtered_events().await?;
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let make_svc = make_service_fn(|_conn| async { Ok::<_, Infallible>(service_fn(ok_page)) });
+    let server = Server::bind(&addr).serve(make_svc);
 
-    let events = event_struct.events_with_description();
-    for evt in events {
-        if let Some(filter_id) = event_struct.filtered_event_for(evt.id.as_ref().unwrap()) {
-            event_struct.update_filtered_event(&evt, &filter_id).await?;
-        } else {
-            event_struct.add_filtered_event(&evt).await?;
-        }
-    }
+    let mut event_struct = calendar::Events::new(auth);
+    event_struct.scan_calendar().await?;
+    event_struct.update_filtered_events().await?;
+
+    let _ = server.await;
     Ok(())
 }
