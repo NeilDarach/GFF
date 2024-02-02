@@ -19,10 +19,8 @@ async fn main() -> Result<(), Error> {
     .unwrap();
 
     let mut event_struct = calendar::Events::new(auth);
-    event_struct.load_main(calendar::MAIN_CALENDAR).await?;
-    event_struct
-        .load_filtered(calendar::FILTERED_CALENDAR)
-        .await?;
+    event_struct.load_main().await?;
+    event_struct.load_filtered().await?;
     event_struct.create_references();
     event_struct.delete_filtered_events().await?;
 

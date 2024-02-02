@@ -4,14 +4,16 @@ use google_calendar3::{CalendarHub, Error};
 use hyper::Client;
 use std::collections::HashMap;
 
-pub static MAIN_CALENDAR: &str =
+static MAIN_CALENDAR: &str =
     "c12717e59b8cbf4e58b2eb5b0fe0e8aa823cf71943cab642507715cd86db80f8@group.calendar.google.com";
-pub static FILTERED_CALENDAR: &str =
+static FILTERED_CALENDAR: &str =
     "70ff6ebc2f94e898b99fa265e71b4d8cd7f2087728d78e9e75f537813b678974@group.calendar.google.com";
 
 #[derive(Default)]
 pub struct Events {
     hub: Option<CalendarHub<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>>,
+    main_sync_token: Option<String>,
+    filtered_sync_token: Option<String>,
     main_by_id: HashMap<String, Event>,
     filter_by_id: HashMap<String, Event>,
     filter_to_orig: HashMap<String, String>,
@@ -37,11 +39,20 @@ impl Events {
         }
     }
 
-    pub async fn all_events(&self, cal_id: &str) -> Result<Vec<Event>, Error> {
+    pub async fn all_events(
+        &self,
+        cal_id: &str,
+        sync_token: Option<String>,
+    ) -> Result<(Option<String>, Vec<Event>), Error> {
         let mut result = Vec::new();
         let mut response;
+        let mut new_sync_token = None;
         if let Some(hub) = &self.hub {
-            response = hub.events().list(cal_id).doit().await?;
+            let mut builder = hub.events().list(cal_id);
+            if let Some(token) = sync_token {
+                builder = builder.sync_token(&token);
+            }
+            response = builder.doit().await?;
             loop {
                 if let Some(mut items) = response.1.items {
                     result.append(&mut items);
@@ -49,24 +60,32 @@ impl Events {
                 if let Some(token) = response.1.next_page_token {
                     response = hub.events().list(cal_id).page_token(&token).doit().await?;
                 } else {
+                    new_sync_token = response.1.next_sync_token;
                     break;
                 }
             }
         }
-        Ok(result)
+        Ok((new_sync_token, result))
     }
 
-    pub async fn load_main(&mut self, cal: &str) -> Result<(), Error> {
-        let events = self.all_events(cal).await?;
+    pub async fn load_main(&mut self) -> Result<(), Error> {
+        let token = self.main_sync_token.clone();
+        let (sync, events) = self.all_events(MAIN_CALENDAR, token).await?;
+        self.main_sync_token = sync;
         for evt in events {
-            self.main_by_id
-                .insert(evt.id.as_ref().unwrap().clone(), evt);
+            if Some("cancelled") == evt.status.as_deref() {
+                self.main_by_id.remove(&evt.id.unwrap());
+            } else {
+                self.main_by_id
+                    .insert(evt.id.as_ref().unwrap().clone(), evt);
+            }
         }
         Ok(())
     }
 
-    pub async fn load_filtered(&mut self, cal: &str) -> Result<(), Error> {
-        let events = self.all_events(cal).await?;
+    pub async fn load_filtered(&mut self) -> Result<(), Error> {
+        let (sync, events) = self.all_events(FILTERED_CALENDAR, None).await?;
+        self.filtered_sync_token = sync;
         for evt in events {
             self.filter_by_id
                 .insert(evt.id.as_ref().unwrap().clone(), evt);
