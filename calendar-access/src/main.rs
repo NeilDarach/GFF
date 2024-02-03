@@ -1,13 +1,31 @@
 use google_calendar3::Error;
+use hyper::server::conn::AddrIncoming;
 use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, Method, Request, Response, Server, StatusCode};
+use hyper::Server;
+use hyper::{Body, Method, Request, Response, StatusCode};
 use std::convert::Infallible;
-use std::net::SocketAddr;
 use std::sync::Arc;
+use tls_listener::TlsListener;
 use tokio::sync::Mutex;
 use yup_oauth2 as oauth2;
 
 mod calendar;
+const CERT: &[u8] = include_bytes!("../darach.cert");
+const PKEY: &[u8] = include_bytes!("../darach.key");
+
+fn tls_acceptor() -> tokio_rustls::TlsAcceptor {
+    use tokio_rustls::rustls::{Certificate, PrivateKey, ServerConfig};
+    let key = PrivateKey(PKEY.into());
+    let cert = Certificate(CERT.into());
+    Arc::new(
+        ServerConfig::builder()
+            .with_safe_defaults()
+            .with_no_client_auth()
+            .with_single_cert(vec![cert], key)
+            .unwrap(),
+    )
+    .into()
+}
 
 async fn route(
     req: Request<Body>,
@@ -53,8 +71,8 @@ async fn main() -> Result<(), Error> {
     .unwrap();
 
     let state = Arc::new(Mutex::new(calendar::Events::new(auth)));
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
-    let make_svc = make_service_fn(|_| {
+    let addr = ([0, 0, 0, 0], 3000).into();
+    let svc = make_service_fn(|_| {
         let state = state.clone();
 
         async move {
@@ -64,8 +82,8 @@ async fn main() -> Result<(), Error> {
             }))
         }
     });
-    let server = Server::bind(&addr).serve(make_svc);
-
+    let incoming = TlsListener::new(tls_acceptor(), AddrIncoming::bind(&addr).unwrap());
+    let server = Server::builder(incoming).serve(svc);
     let _ = server.await;
     Ok(())
 }
