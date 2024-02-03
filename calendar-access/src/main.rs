@@ -1,3 +1,4 @@
+use futures::join;
 use google_calendar3::Error;
 use hyper::server::conn::AddrIncoming;
 use hyper::service::{make_service_fn, service_fn};
@@ -5,8 +6,10 @@ use hyper::Server;
 use hyper::{Body, Method, Request, Response, StatusCode};
 use std::convert::Infallible;
 use std::sync::Arc;
+use std::time::Duration;
 use tls_listener::TlsListener;
 use tokio::sync::Mutex;
+use tokio::{task, time};
 use yup_oauth2 as oauth2;
 
 mod calendar;
@@ -40,6 +43,12 @@ async fn route(
             let json = serde_json::to_string_pretty(&*event_struct).unwrap();
             *response.body_mut() = Body::from(json);
         }
+        (&Method::POST, "/update") => {
+            println!("Updating");
+            let mut event_struct = state.lock().await;
+            event_struct.scan_calendar().await.unwrap();
+            event_struct.update_filtered_events().await.unwrap();
+        }
         (&Method::GET, "/check") => {
             let mut event_struct = state.lock().await;
             event_struct.scan_calendar().await.unwrap();
@@ -71,7 +80,7 @@ async fn main() -> Result<(), Error> {
     .unwrap();
 
     let state = Arc::new(Mutex::new(calendar::Events::new(auth)));
-    let addr = ([0, 0, 0, 0], 3000).into();
+    let addr = ([0, 0, 0, 0], 3020).into();
     let svc = make_service_fn(|_| {
         let state = state.clone();
 
@@ -84,6 +93,21 @@ async fn main() -> Result<(), Error> {
     });
     let incoming = TlsListener::new(tls_acceptor(), AddrIncoming::bind(&addr).unwrap());
     let server = Server::builder(incoming).serve(svc);
-    let _ = server.await;
+    let state = state.clone();
+    let renew = task::spawn(async move {
+        let state = state.clone();
+        let mut interval = time::interval(Duration::from_millis(100000));
+        loop {
+            interval.tick().await;
+            {
+                let mut event_struct = state.lock().await;
+                let _ = event_struct
+                    .renew_watch(interval.period().as_millis())
+                    .await;
+            }
+        }
+    });
+
+    let _ = join!(server, renew);
     Ok(())
 }

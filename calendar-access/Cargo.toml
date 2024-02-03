@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+futures = "0.3.30"
 google-calendar3 = "5.0.3"
 hyper = { "version"= "^ 0.14", features = ["server","tcp", "http1", "stream"] }
 hyper-rustls = "0.24.0"
@@ -15,5 +16,6 @@ serde_json = "^ 1.0"
 tls-listener = { version = "0.4", features = ["tokio-rustls", "rustls", "hyper-h1"] }
 tokio = { version = "^1.0", features = ["macros", "net", "io-util", "rt", "rt-multi-thread", "fs", "sync"] }
 tokio-rustls = "0.23.0"
+uuid = { version = "1.7.0", features = ["v4"] }
 yup-oauth2 = "8.3.2"
 
