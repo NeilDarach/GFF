@@ -36,6 +36,11 @@ async fn route(
 ) -> Result<Response<Body>, Infallible> {
     let mut response = Response::new(Body::empty());
 
+    let uuid = {
+        let es = state.lock().await;
+        es.uuid.clone()
+    };
+    let change = format!("/change/{}", uuid);
     match (req.method(), req.uri().path()) {
         (&Method::GET, "/") => {
             let event_struct = state.lock().await;
@@ -43,8 +48,7 @@ async fn route(
             let json = serde_json::to_string_pretty(&*event_struct).unwrap();
             *response.body_mut() = Body::from(json);
         }
-        (&Method::POST, "/update") => {
-            println!("Updating");
+        (&Method::POST, c) if c == change => {
             let mut event_struct = state.lock().await;
             event_struct.scan_calendar().await.unwrap();
             event_struct.update_filtered_events().await.unwrap();
@@ -96,7 +100,7 @@ async fn main() -> Result<(), Error> {
     let state = state.clone();
     let renew = task::spawn(async move {
         let state = state.clone();
-        let mut interval = time::interval(Duration::from_millis(100000));
+        let mut interval = time::interval(Duration::from_millis(1000000));
         loop {
             interval.tick().await;
             {
