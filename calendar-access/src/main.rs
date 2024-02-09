@@ -2,6 +2,7 @@ use futures::join;
 use google_calendar3::Error;
 use hyper::server::conn::AddrIncoming;
 use hyper::service::{make_service_fn, service_fn};
+use hyper::Client;
 use hyper::Server;
 use hyper::{Body, Method, Request, Response, StatusCode};
 use std::convert::Infallible;
@@ -10,7 +11,7 @@ use std::time::Duration;
 use tls_listener::TlsListener;
 use tokio::sync::Mutex;
 use tokio::{task, time};
-use yup_oauth2 as oauth2;
+use yup_oauth2::parse_service_account_key;
 
 mod calendar;
 const CERT: &[u8] = include_bytes!("../darach.cert");
@@ -68,22 +69,26 @@ async fn route(
     Ok(response)
 }
 
+static SERVICE_CREDENTIALS: &[u8] = include_bytes!("../film-festival-412409-0f5937683c0c.json");
+
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    // Load the secret
-    let secret = oauth2::read_application_secret("credentials.json")
-        .await
-        .expect("Client secret not loaded from credentials.json");
-    let auth = oauth2::InstalledFlowAuthenticator::builder(
-        secret,
-        oauth2::InstalledFlowReturnMethod::HTTPRedirect,
-    )
-    .persist_tokens_to_disk("tokencache.json")
-    .build()
-    .await
-    .unwrap();
+    // Load the secretn
+    let service_key =
+        parse_service_account_key(SERVICE_CREDENTIALS).expect("bad gmail credentials");
 
-    let state = Arc::new(Mutex::new(calendar::Events::new(auth)));
+    let client = Client::builder().build(
+        hyper_rustls::HttpsConnectorBuilder::new()
+            .with_native_roots()
+            .https_only()
+            .enable_http1()
+            .build(),
+    );
+    let auth = yup_oauth2::ServiceAccountAuthenticator::with_client(service_key, client.clone())
+        .build()
+        .await
+        .expect("failed to create authenticator");
+    let state = Arc::new(Mutex::new(calendar::Events::new(client, auth)));
     let addr = ([0, 0, 0, 0], 3020).into();
     let svc = make_service_fn(|_| {
         let state = state.clone();

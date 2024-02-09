@@ -1,11 +1,13 @@
-use crate::oauth2::authenticator::Authenticator;
 use google_calendar3::api::{Channel, Event};
 use google_calendar3::{CalendarHub, Error};
+use hyper::client::HttpConnector;
 use hyper::Client;
+use hyper_rustls::HttpsConnector;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::time::SystemTime;
 use uuid::Uuid;
+use yup_oauth2::authenticator::Authenticator;
 
 static MAIN_CALENDAR: &str =
     "c12717e59b8cbf4e58b2eb5b0fe0e8aa823cf71943cab642507715cd86db80f8@group.calendar.google.com";
@@ -42,16 +44,10 @@ pub struct Events {
 
 impl Events {
     pub fn new(
-        auth: Authenticator<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>,
+        client: Client<HttpsConnector<HttpConnector>>,
+        auth: Authenticator<HttpsConnector<HttpConnector>>,
     ) -> Self {
         let uuid = Uuid::new_v4().to_string();
-        let client = Client::builder().build(
-            hyper_rustls::HttpsConnectorBuilder::new()
-                .with_native_roots()
-                .https_or_http()
-                .enable_http1()
-                .build(),
-        );
 
         let hub = Some(CalendarHub::new(client, auth));
         Self {
