@@ -1,4 +1,13 @@
-Expand the oringal json to one move record for each showing date
+getIds.sh fetches the internal film id numbers from the website
+get_showings.sh <id> fetches all the showing data for a specific film
+
+showings.json contains an array of all the outputs of get_showings.sh
+
+The csv for import into google needs
+Subject, Start Date, Start Time, End Time, All Day Event, Description, Location
+"I Am Martin Parr", "02-25-2025", "1:10 PM","2:18 PM", False, "", "GFT 1"
+
+Expand the original json to one movie record for each showing date
 cat allmovies.json | jq -r '.[] | . as $entry | .datesWithPublicShowing |  .[] | [ {"date":. } + $entry} ]' > bydate.json
   movies2.json is just an array of movies with the top level stripped
 
@@ -17,6 +26,6 @@ map([.id, .time, ($scr[.screenId]|tojson), (.movie.name|tojson), .movie.duration
 
 
 
-= Create the input for the brocure
+= Create the input for the brochure
 jq --slurpfile ref ref.json 'import "gff" as gff; . | gff::generateBrochure ' showings-array.json | jq -s "."
 

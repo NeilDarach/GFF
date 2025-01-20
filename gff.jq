@@ -14,6 +14,10 @@ def sheetHeaders:
   [ "Title","Time","Duration (min)","Screen","Synopsis","Staring","Genre","All Genres","Directed By","Rating","Rating Reason","Strand","Youtube Trailer Id","Poster" ]
   ;
 
+def icalHeaders:
+  [ "BEGIN", "DTSTART", "DTEND", "LOCATION", "SUMMARY", "END" ]
+  ;
+
 def calendarHeaders:
   [ "Subject", "Start Date", "All Day Event", "Start Time", "End Time", "Location", "Description", "Private" ]
   ;
@@ -24,11 +28,20 @@ def calendarDate:
   fromdate | strftime("%m/%d/%Y")
   ;
 
+def icalStart:
+  fromdate | strftime("%y%m%dT%H%M%SZ")
+  ;
+
 def calendarTime:
   # expect 2024-03-08T19:45:00Z
   # return 7:45pm
   fromdate | strftime("%l:%M %p") | ltrimstr(" ")
   ;
+
+def icalEnd:
+  .movie.duration as $duration | .time | fromdate + ($duration * 60) | todate | icalStart
+;
+
 
 def sortName:
   if startswith("The ") then (.[4:]+", The") 
@@ -95,6 +108,31 @@ def tr:
   rtrimstr("\n")
   ;
 
-def generateBrochure:
-  group_by(.movie.id)[] | { "name": (.[0].movie.name), "sortname": (.[0].movie.name|sortName), "showings": [.[] | { "screen": (.screenId|getScreen), "time": (.time|brochureTime), "date":(.time|brochureDate), "datetime":.time} ] | sort_by(.datetime), "duration": .[0].movie.duration, "synopsis": (first.movie.synopsis|gsub("______*";"____";"m")|tr), "starring": (first.movie.starring//""|tr), "genres": (first.movie | combineGenres), "directedBy":(first.movie.directedBy//""|tr), "rating":(first.movie.rating|tr), "ratingReason":(first.movie.ratingReason//""|tr), "strand":(first.showingBadgeIds|getStrand), "poster":(first.movie.posterImage|posterFile) }
+def stripSynopsis:
+  gsub("______*";"____";"m")|gsub("</?i>";"_";"m")|gsub("</?b>";"*";"m")|gsub("<a .*</a>";"";"m")|gsub("</style>";"";"m")|gsub("</?font[^>]+>";"";"m")|tr
   ;
+
+def generateBrochure:
+  group_by(.movie.id)[] | { "name": (.[0].movie.name), "sortname": (.[0].movie.name|sortName), "showings": [.[] | { "screen": (.screenId|getScreen), "time": (.time|brochureTime), "date":(.time|brochureDate), "datetime":.time} ], "duration": .[0].movie.duration, "synopsis": (first.movie.synopsis|stripSynopsis), "starring": (first.movie.starring//""|tr) , "genres": (first.movie | combineGenres), "directedBy":(first.movie.directedBy//""|tr) , "rating":(first.movie.rating|tr), "ratingReason":(first.movie.ratingReason//""|tr), "strand":(first.showingBadgeIds|getStrand), "poster":(first.movie.posterImage|posterFile) }
+  ;
+
+def generateCsvInfo:
+  [ .[] | { "Subject": .movie.name, "Start Date": (.time|calendarDate), "Start Time": (.time|calendarTime), "End Time": (.|calendarEndTime), "All Day Event":"False", "Description":"", "Location": (.screenId|getScreen), "Private": "False" } ]
+  ;
+
+def  generateCsv:
+  map (. as $row | calendarHeaders | map($row[.])) as $rows | calendarHeaders, $rows[] | @csv
+  ;
+
+def generateIcalInfo:
+  .[] | "BEGIN:VEVENT\nSUMMARY:\(.movie.name)\nDTSTART:\(.time|icalStart)\nDTEND:\(.|icalEnd)\nLOCATION:\(.screenId|getScreen)\nEND:VEVENT"
+  ;
+
+def  generateIcal:
+  .
+  ;
+
+def generateSummary:
+  [ .[] | {"date":.time[:10], "screen":.screenId, "start": .time[11:16],"title": .movie.name, "duration":.movie.duration, "color":"xFFFFFF" }] | sort_by(.screen)|group_by(.date) | map({"key": .[0].date, value: (map(.)|group_by(.screen)|map({"key":(.[0].screen|getScreen), value: map({"start":.start,"title":.title,"duration":.duration,"color":"ffffdd"})}))|from_entries}) | from_entries
+  ;
+

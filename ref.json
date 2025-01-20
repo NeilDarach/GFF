@@ -7,16 +7,17 @@
     "229": "Barras Art & Design (BAaD)",
     "230": "Cineworld Screen 1",
     "231": "Cineworld Screen 2",
-    "232": "CCA Cinema"
+    "232": "CCA Cinema",
+    "319": "Grand Ole Opry"
   },
   "strands": {
-    "855": "Country Focus",
+    "583": "Special Event",
     "858": "Gala",
-    "828": "Our Story So Far",
-    "857": "FrightFest",
-    "860": "love is sweet oh!",
-    "862": "What Will The Men Wear",
-    "869": "Gestures of Memory: After the Archive",
-    "870": "Wild Flower, Flaming Star: The Films of Dolores Del Rio"
+    "857": "FrightFest"
+  },
+  "unused badges": {
+    "827": "GFF",
+    "546": "Reserved Seats",
+    "549": "Accessible"
   }
 }
