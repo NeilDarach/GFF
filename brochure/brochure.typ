@@ -7,9 +7,6 @@
       if (calc.rem(loc.page(), 2)) != 0 [ GFF 2025 #h(1fr) #counter(page).display("1") ] else [ #counter(page).display("1") #h(1fr) GFF 2025 ] } else { }}),
   number-align: center,
   )
-#set par(justify: true)
-#set text(size: 0.8em)
-#set par(leading: 0.55em)
 
 #v(1fr)
 #align(center)[#image("banner.jpg", width: 100%)]
@@ -18,11 +15,64 @@
 #pagebreak()
 #counter(page).update(1) 
 
+
+//#set page(
+ // flipped: true,
+  //)
+#set par(justify: false)
+#set text(size: 0.8em)
+#set par(leading: 0.55em)
+
+#let rowOffset=24pt
+#let screenCol=10%
+#let pct(mins) = { (((100%-screenCol)/14)*((mins /60))) }
+#let filmBox(body,start:"10:00",duration:30,color:blue,row:0,id:"")= {
+    let (h,m) = start.split(":")
+    let st = (int(h)*60)
+    place(dx:pct((int(h)*60)+int(m)-600)+screenCol,dy:4pt+(row*rowOffset))[#box(height: 20pt, width: pct(duration),fill: color,stroke: 1pt+black,clip:true,inset:2pt,radius:3pt,outset:(x:0pt))[#link(label(id))[#body]]]
+}
+#let screen(name:"",row:0) = {
+      place(dx:0%,dy:10pt+(rowOffset*row))[#box(width: screenCol,height: 10pt,clip:true,outset:(x:-1pt))[#name]]
+    }
+#let mygrid(lines) ={
+    let i = 0
+    while i < 14 {
+      place(dx:pct(i*60)+screenCol,dy:-4pt)[#(10+i)]
+      place(dx:pct(i*60)+screenCol,dy:-4pt)[#line(start:(0pt,-1pt),length: (rowOffset*lines)+10pt, angle: 90deg)]
+      i = i+1
+      }
+}
+
+= Summary <summary>
+#for (day,showings) in json("summary.json") {
+block(breakable: false)[
+    #day
+    #rect(width: 100%, height: (rowOffset*showings.len()) + 10pt)[
+    #mygrid(showings.len())
+    #let row=0
+    #for (screen_entry,films) in showings {
+       screen(name:screen_entry,row:row)
+       for film in films {
+       filmBox(start: film.at("start") ,duration: film.at("duration"),color:color.rgb(film.at("color")), row: row,id: film.at("id"))[#film.at("title")]
+       }
+    row = row +1
+
+}
+]]
+}
+
+
+#pagebreak()
+
+
+#set par(justify: true)
+#set text(size: 0.8em)
+#set par(leading: 0.55em)
 #columns(2)[
 #let showFilm(film) = block(breakable: false)[
 #index[#film.name]
 #index[#film.sortname]
-= #film.name (#film.rating) \
+= #film.name #label(film.id) (#film.rating) \
 #if film.strand != "" [ #film.strand\ ]
 #text(size: 0.8em)[
 #for s in film.showings [

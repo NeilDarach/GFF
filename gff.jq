@@ -7,7 +7,11 @@ def getScreen:
 def getStrand:
   #expect badge string - [ "853", "828", "549", "583" ]
   #returns the first which matches a strand -  "Our Story So Far"
-  ((.[] | $ref[].strands[.])//"") 
+  [ ((.[] | $ref[].strands[.])//"")] | first
+  ;
+
+def getStrandColor:
+  [ ((.[] | $ref[].colors[.])//"") | (if . == "" then "9f7160" else . end) ] | first
   ;
 
 def sheetHeaders: 
@@ -48,8 +52,11 @@ def sortName:
   else if startswith("A ") then (.[2:]+", A") 
   else if startswith("An ") then (.[3:]+", An") 
   else if startswith("FrightFest ") then (.[11:]+", FrightFest") 
-  else . end end end end
+  else if startswith("Take 2: ") then (.[8:]+", Take 2") 
+  else . end end end end end
   ;
+
+
 
 def calendarEndTime:
   # expect 2024-03-08T19:45:00Z
@@ -114,7 +121,7 @@ def stripSynopsis:
   ;
 
 def generateBrochureData:
-   (group_by(.movie.id)[] |  { "name": (.[0].movie.name), "sortname": (.[0].movie.name|sortName), "showings": [.[] | { "screen": (.screenId|getScreen), "time": (.time|brochureTime), "date":(.time|brochureDate), "datetime":.time} ], "duration": .[0].movie.duration, "synopsis": (first.movie.synopsis|stripSynopsis), "starring": (first.movie.starring//""|tr) , "genres": (first.movie | combineGenres), "directedBy":(first.movie.directedBy//""|tr) , "rating":(first.movie.rating|tr), "ratingReason":(first.movie.ratingReason//""|tr), "strand":(first.showingBadgeIds|getStrand), "poster":(first.movie.posterImage|posterFile) }) 
+   (group_by(.movie.id)[] |  { "name": (.[0].movie.name), "id": (.[0].movie.id), "sortname": (.[0].movie.name|sortName), "showings": [.[] | { "screen": (.screenId|getScreen), "time": (.time|brochureTime), "date":(.time|brochureDate), "datetime":.time} ], "duration": .[0].movie.duration, "synopsis": (first.movie.synopsis|stripSynopsis), "starring": (first.movie.starring//""|tr) , "genres": (first.movie | combineGenres), "directedBy":(first.movie.directedBy//""|tr) , "rating":(first.movie.rating|tr), "ratingReason":(first.movie.ratingReason//""|tr), "strand":(first.showingBadgeIds|getStrand), "poster":(first.movie.posterImage|posterFile) }) 
   ;
 
 def generateBrochure:
@@ -137,7 +144,8 @@ def  generateIcal:
   .
   ;
 
+
 def generateSummary:
-  [ .[] | {"date":.time[:10], "screen":.screenId, "start": .time[11:16],"title": .movie.name, "duration":.movie.duration, "color":"xFFFFFF" }] | sort_by(.screen)|group_by(.date) | map({"key": .[0].date, value: (map(.)|group_by(.screen)|map({"key":(.[0].screen|getScreen), value: map({"start":.start,"title":.title,"duration":.duration,"color":"ffffdd"})}))|from_entries}) | from_entries
+  [ .[] | {"id":.movie.id, "date":.time[:10], "screen":.screenId, "start": .time[11:16],"title": .movie.name, "duration":.movie.duration, "strand": (.showingBadgeIds|getStrand),"color":(.showingBadgeIds|getStrandColor) }] | sort_by(.screen)|group_by(.date) | map({"key": .[0].date, value: (map(.)|group_by(.screen)|map({"key":(.[0].screen|getScreen), value: map({"start":.start,"title":.title,"strand":.strand,"duration":.duration,"color":.color, "id":.id})}))|from_entries}) | from_entries
   ;
 

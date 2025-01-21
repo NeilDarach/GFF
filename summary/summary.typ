@@ -16,7 +16,7 @@
 #let filmBox(body,start:"10:00",duration:30,color:blue,row:0)= {
     let (h,m) = start.split(":")
     let st = (int(h)*60)
-    place(dx:pct((int(h)*60)+int(m)-600)+screenCol,dy:4pt+(row*rowOffset))[#box(height: 20pt, width: pct(duration),fill: color,stroke: 1pt+black,clip:true,inset:2pt,radius:3pt,outset:(x:0pt))[#body]]
+    place(dx:pct((int(h)*60)+int(m)-600)+screenCol,dy:4pt+(row*rowOffset))[#box(height: 20pt, width: pct(duration),fill: color,stroke: 1pt+black,clip:true,inset:2pt,radius:3pt,outset:(x:0pt))[#link(<summary>)[#body]]]
 }
 #let screen(name:"",row:0) = {
       place(dx:0%,dy:10pt+(rowOffset*row))[#box(width: screenCol,height: 10pt,clip:true,outset:(x:-1pt))[#name]]
@@ -30,6 +30,7 @@
       }
 }
 
+= Summary <summary>
 #for (day,showings) in json("summary.json") {
 block(breakable: false)[
     #day

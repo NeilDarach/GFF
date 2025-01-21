@@ -22,7 +22,19 @@
     "1233": "Our Time is Now: Coming of Age at the Movies",
     "556": "Take 2"
   },
+  "colors": {
+    "583": "bc0e77",
+    "858": "e30512",
+    "857": "508b98",
+    "854": "b3ad00",
+    "855": "ec6706",
+    "1234": "34f9dd",
+    "852": "009a0f",
+    "1233": "0072c2",
+    "556": "00ff3b"
+  },
   "unused badges": {
+    "other": "9f7160",
     "827": "GFF",
     "546": "Reserved Seats",
     "549": "Accessible"

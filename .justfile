@@ -6,8 +6,8 @@ rebuild:
     cat ids.json | jq -r keys[] | xargs -n 1 ./get_showings.sh | jq -s . > showings.json
     ./showing-to-csv.sh 
     just posters
-    just brochure
     just summary
+    just brochure
 
 brochure:
     jq --slurpfile ref ref.json 'import "gff" as gff; . | gff::generateBrochure ' showings.json > brochure/brochure.json
@@ -15,6 +15,7 @@ brochure:
 
 summary:
     jq --slurpfile ref ref.json 'import "gff" as gff; . | gff::generateSummary ' showings.json > summary/summary.json
+    cp summary/summary.json brochure
     cd summary; typst compile summary.typ
 
 posters:
