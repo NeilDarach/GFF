@@ -47,7 +47,8 @@ def sortName:
   if startswith("The ") then (.[4:]+", The") 
   else if startswith("A ") then (.[2:]+", A") 
   else if startswith("An ") then (.[3:]+", An") 
-  else . end end end
+  else if startswith("FrightFest ") then (.[11:]+", FrightFest") 
+  else . end end end end
   ;
 
 def calendarEndTime:
@@ -109,11 +110,15 @@ def tr:
   ;
 
 def stripSynopsis:
-  gsub("______*";"____";"m")|gsub("</?i>";"_";"m")|gsub("</?b>";"*";"m")|gsub("<a .*</a>";"";"m")|gsub("</style>";"";"m")|gsub("</?font[^>]+>";"";"m")|tr
+  gsub("______*";"____";"m")|gsub("\\*";"\\*";"")|gsub("</?[iI]/?>";"_";"m")|gsub("<a [^>]+>(?<a>[^<]+)</a>";"\(.a)";"m")|gsub("</style>";"";"m")|gsub("</?font[^>]*>";"";"m")|gsub("<[bB]>(?<b>[^<]*)</[bB]>";"#strong[\(.b)]";"m")|gsub("<[iI]>(?<i>[^<]*)</[iI]>";"#emph[\(.i)]";"m")|gsub("</?[^>]+/?>";"";"m")|tr
+  ;
+
+def generateBrochureData:
+   (group_by(.movie.id)[] |  { "name": (.[0].movie.name), "sortname": (.[0].movie.name|sortName), "showings": [.[] | { "screen": (.screenId|getScreen), "time": (.time|brochureTime), "date":(.time|brochureDate), "datetime":.time} ], "duration": .[0].movie.duration, "synopsis": (first.movie.synopsis|stripSynopsis), "starring": (first.movie.starring//""|tr) , "genres": (first.movie | combineGenres), "directedBy":(first.movie.directedBy//""|tr) , "rating":(first.movie.rating|tr), "ratingReason":(first.movie.ratingReason//""|tr), "strand":(first.showingBadgeIds|getStrand), "poster":(first.movie.posterImage|posterFile) }) 
   ;
 
 def generateBrochure:
-  group_by(.movie.id)[] | { "name": (.[0].movie.name), "sortname": (.[0].movie.name|sortName), "showings": [.[] | { "screen": (.screenId|getScreen), "time": (.time|brochureTime), "date":(.time|brochureDate), "datetime":.time} ], "duration": .[0].movie.duration, "synopsis": (first.movie.synopsis|stripSynopsis), "starring": (first.movie.starring//""|tr) , "genres": (first.movie | combineGenres), "directedBy":(first.movie.directedBy//""|tr) , "rating":(first.movie.rating|tr), "ratingReason":(first.movie.ratingReason//""|tr), "strand":(first.showingBadgeIds|getStrand), "poster":(first.movie.posterImage|posterFile) }
+  [generateBrochureData ]|sort_by(.sortname)
   ;
 
 def generateCsvInfo:

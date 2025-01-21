@@ -4,16 +4,23 @@
     "172": "GFT 2",
     "175": "GFT 3",
     "228": "Cottiers",
-    "229": "Barras Art & Design (BAaD)",
-    "230": "Cineworld Screen 1",
-    "231": "Cineworld Screen 2",
+    "229": "BAaD",
+    "230": "Cineworld 1",
+    "231": "Cineworld 2",
     "232": "CCA Cinema",
-    "319": "Grand Ole Opry"
+    "319": "Grand Ole Opry",
+    "321": "Adelaide Place"
   },
   "strands": {
     "583": "Special Event",
     "858": "Gala",
-    "857": "FrightFest"
+    "857": "FrightFest",
+    "854": "Audience Award",
+    "855": "Country Focus",
+    "1234": "Mai Zetterling Focus",
+    "852": "Official Selection",
+    "1233": "Our Time is Now: Coming of Age at the Movies",
+    "556": "Take 2"
   },
   "unused badges": {
     "827": "GFF",

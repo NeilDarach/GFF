@@ -1,6 +1,6 @@
 #import "in-dexter.typ": *
 #set page(
-  margin: (inside: 2.5cm, outside: 2cm, y: 1.75cm),
+  margin: (inside: 2.0cm, outside: 1.5cm, y: 1.75cm),
   footer: locate(loc => { 
     let headings = query(selector(heading).before(loc),loc)
     if headings != () { 
@@ -29,25 +29,38 @@
 #s.date, #s.time - #s.screen\
 ]]
 
+        #let sidebar = ()
+#if film.starring != "" { 
+sidebar.push("Starring:") 
+sidebar.push(film.starring) }
 
-#align(center)[#image(film.poster, width: 50%)]
+#if film.directedBy != "" { 
+sidebar.push("Directed By:")
+sidebar.push(film.directedBy) }
+
+#if film.genres != "" {
+        sidebar.push("Genres:")
+        sidebar.push(film.genres) }
+#if film.ratingReason != ""  {
+        sidebar.push("Rating notes:")
+        sidebar.push(film.ratingReason)} 
+
+        #grid(columns:(2fr,3fr), rows: auto, gutter: 3pt, [#align(left)[#image(film.poster,width:100%)]], [
+            #text(size: 0.8em)[ #grid(columns:(6em,auto),gutter: 3pt, ..sidebar)]]) 
 #let syntext = film.synopsis
 #let synmark = eval(syntext,mode:"markup")
-#text(size: 0.9em)[ #synmark ]
+#text(size: 0.8em)[ #synmark ]
 #label("synopsis")
 
 #text(size: 0.8em)[
-#if film.starring != "" [ Starring: #film.starring\ ]
-#if film.directedBy != "" [ Directed By: #film.directedBy\ ]
-#if film.genres != "" [ Genres:  #film.genres\ ]
-#if film.ratingReason != ""  [ Rating notes: #film.ratingReason ]
 ]
 #v(1em)
 ]
 
 #label("synopsis")
-#for f in json("brochure.json") {
-   showFilm(f) }
+#for (i,f) in json("brochure.json").enumerate() {
+    if i < 300 {
+   showFilm(f) } }
 ]
 
 #pagebreak()
