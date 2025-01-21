@@ -4,7 +4,8 @@
   footer: locate(loc => { 
     let headings = query(selector(heading).before(loc),loc)
     if headings != () { 
-      if (calc.rem(loc.page(), 2)) != 0 [ GFF 2025 #h(1fr) #counter(page).display("1") ] else [ #counter(page).display("1") #h(1fr) GFF 2025 ] } else { }}),
+
+      if (calc.rem(loc.page(), 2)) != 0 [ #text(size: 0.8em)[GFF 2025 #h(1fr) #counter(page).display("1") ] ] else [ #text(size: 0.8em)[#counter(page).display("1") #h(1fr) GFF 2025 ] ] } else { }}),
   number-align: center,
   )
 
@@ -20,7 +21,6 @@
  // flipped: true,
   //)
 #set par(justify: false)
-#set text(size: 0.8em)
 #set par(leading: 0.55em)
 
 #let rowOffset=24pt
@@ -29,7 +29,7 @@
 #let filmBox(body,start:"10:00",duration:30,color:blue,row:0,id:"")= {
     let (h,m) = start.split(":")
     let st = (int(h)*60)
-    place(dx:pct((int(h)*60)+int(m)-600)+screenCol,dy:4pt+(row*rowOffset))[#box(height: 20pt, width: pct(duration),fill: color,stroke: 1pt+black,clip:true,inset:2pt,radius:3pt,outset:(x:0pt))[#link(label(id))[#body]]]
+    place(dx:pct((int(h)*60)+int(m)-600)+screenCol,dy:4pt+(row*rowOffset))[#box(height: 20pt, width: pct(duration),fill: color,stroke: 1pt+black,clip:true,inset:2pt,radius:3pt,outset:(x:0pt,y:1pt))[#link(label(id))[#text(size:0.75em)[#body]]]]
 }
 #let screen(name:"",row:0) = {
       place(dx:0%,dy:10pt+(rowOffset*row))[#box(width: screenCol,height: 10pt,clip:true,outset:(x:-1pt))[#name]]
@@ -46,7 +46,7 @@
 = Summary <summary>
 #for (day,showings) in json("summary.json") {
 block(breakable: false)[
-    #day
+    == #day - #showings.at("GFT 1").at(0).day
     #rect(width: 100%, height: (rowOffset*showings.len()) + 10pt)[
     #mygrid(showings.len())
     #let row=0
@@ -66,8 +66,7 @@ block(breakable: false)[
 
 
 #set par(justify: true)
-#set text(size: 0.8em)
-#set par(leading: 0.55em)
+#set par(leading: 0.35em)
 #columns(2)[
 #let showFilm(film) = block(breakable: false)[
 #index[#film.name]
@@ -96,21 +95,16 @@ sidebar.push(film.directedBy) }
         sidebar.push(film.ratingReason)} 
 
         #grid(columns:(2fr,3fr), rows: auto, gutter: 3pt, [#align(left)[#image(film.poster,width:100%)]], [
-            #text(size: 0.8em)[ #grid(columns:(6em,auto),gutter: 3pt, ..sidebar)]]) 
+            #text(size: 0.6em)[ #grid(columns:(6em,auto),gutter: 3pt, ..sidebar)]]) 
 #let syntext = film.synopsis
 #let synmark = eval(syntext,mode:"markup")
-#text(size: 0.8em)[ #synmark ]
-#label("synopsis")
+#text(size: 0.7em)[ #synmark ]
 
-#text(size: 0.8em)[
-]
 #v(1em)
 ]
 
-#label("synopsis")
 #for (i,f) in json("brochure.json").enumerate() {
-    if i < 300 {
-   showFilm(f) } }
+   showFilm(f) }
 ]
 
 #pagebreak()

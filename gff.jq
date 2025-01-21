@@ -32,6 +32,10 @@ def calendarDate:
   fromdate | strftime("%m/%d/%Y")
   ;
 
+def get_day:
+  fromdate | strftime("%A")
+  ;
+
 def icalStart:
   fromdate | strftime("%y%m%dT%H%M%SZ")
   ;
@@ -146,6 +150,6 @@ def  generateIcal:
 
 
 def generateSummary:
-  [ .[] | {"id":.movie.id, "date":.time[:10], "screen":.screenId, "start": .time[11:16],"title": .movie.name, "duration":.movie.duration, "strand": (.showingBadgeIds|getStrand),"color":(.showingBadgeIds|getStrandColor) }] | sort_by(.screen)|group_by(.date) | map({"key": .[0].date, value: (map(.)|group_by(.screen)|map({"key":(.[0].screen|getScreen), value: map({"start":.start,"title":.title,"strand":.strand,"duration":.duration,"color":.color, "id":.id})}))|from_entries}) | from_entries
+  [ .[] | {"id":.movie.id, "date":.time[:10], "screen":.screenId, "day":(.time|get_day), "start": .time[11:16],"title": .movie.name, "duration":.movie.duration, "strand": (.showingBadgeIds|getStrand),"color":(.showingBadgeIds|getStrandColor) }] | sort_by(.screen)|group_by(.date) | map({"key": .[0].date, value: (map(.)|group_by(.screen)|map({"key":(.[0].screen|getScreen), value: map({"start":.start,"title":.title,"strand":.strand,"duration":.duration,"color":.color, "id":.id,"day":.day})}))|from_entries}) | from_entries
   ;
 
