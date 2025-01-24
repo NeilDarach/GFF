@@ -60,12 +60,17 @@
       };
       devShells = forEachSupportedSystem ({ pkgs }: {
         default = pkgs.mkShell {
-          packages = with pkgs; [ typst nvim rustToolchain just bacon ];
+          packages = with pkgs; [ sops typst nvim rustToolchain just bacon ];
+          shellHook = ''
+            set -a
+            COOKIE="$(${pkgs.sops}/bin/sops --extract '["gff_website_cookie"]' --decrypt ${
+              toString ./secrets.yaml
+            })"
+            set +a
+          '';
           env = {
             RUST_SRC_PATH =
               "${pkgs.rustToolchain}/lib/rustlib/src/rust/library";
-            COOKIE =
-              "site_id=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklqRXdNeUk9IiwiZXhwIjpudWxsLCJwdXIiOiJjb29raWUuc2l0ZV9pZCJ9fQ==--e47c301e6af5b7a5c5f428589b4213fb341ee0d3;";
           };
         };
       });
