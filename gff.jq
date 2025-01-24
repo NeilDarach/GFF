@@ -4,15 +4,27 @@ def getScreen:
   ($ref[].screens[.] // "missing")
   ;
 
-def getStrand:
+#def getStrand:
   #expect badge string - [ "853", "828", "549", "583" ]
   #returns the first which matches a strand -  "Our Story So Far"
-  [ ((.[] | $ref[].strands[.])//"")] | first
+  #[ ((.[] | $ref[].strands[.])//"")] | first
+  #;
+
+def gs($x):
+  ($ref[].strands | .[] | select(.id == $x)) // ($ref[].strands | .[] | select(.id == "other"))
+  ;
+
+def getStrand:
+  [.[] | gs(.)] | sort_by(.priority) | first | .description
   ;
 
 def getStrandColor:
-  [ ((.[] | $ref[].colors[.])//"") | (if . == "" then "9f7160" else . end) ] | first
+  [.[] | gs(.)] | sort_by(.priority) | first | .color
   ;
+
+#def getStrandColor:
+  #[ ((.[] | $ref[].colors[.])//"") | (if . == "" then "9f7160" else . end) ] | first
+  #;
 
 def sheetHeaders: 
   [ "Title","Time","Duration (min)","Screen","Synopsis","Staring","Genre","All Genres","Directed By","Rating","Rating Reason","Strand","Youtube Trailer Id","Poster" ]

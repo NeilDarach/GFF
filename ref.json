@@ -11,28 +11,68 @@
     "319": "Grand Ole Opry",
     "321": "Adelaide Place"
   },
-  "strands": {
-    "583": "Special Event",
-    "858": "Gala",
-    "857": "FrightFest",
-    "854": "Audience Award",
-    "855": "Country Focus",
-    "1234": "Mai Zetterling Focus",
-    "852": "Official Selection",
-    "1233": "Our Time is Now: Coming of Age at the Movies",
-    "556": "Take 2"
-  },
-  "colors": {
-    "583": "bc0e77",
-    "858": "e30512",
-    "857": "508b98",
-    "854": "b3ad00",
-    "855": "ec6706",
-    "1234": "34f9dd",
-    "852": "009a0f",
-    "1233": "0072c2",
-    "556": "00ff3b"
-  },
+  "strands": [
+    {
+      "id": "583",
+      "description": "Special Event",
+      "color": "bc0e77",
+      "priority": 2
+    },
+    {
+      "id": "858",
+      "description": "Gala",
+      "color": "e30512",
+      "priority": 0
+    },
+    {
+      "id": "857",
+      "description": "FrightFest",
+      "color": "508b98",
+      "priority": 4
+    },
+    {
+      "id": "854",
+      "description": "Audience Award",
+      "color": "b3ad00",
+      "priority": 4
+    },
+    {
+      "id": "855",
+      "description": "Country Focus",
+      "color": "ec6706",
+      "priority": 4
+    },
+    {
+      "id": "1234",
+      "description": "Mai Zetterling Focus",
+      "color": "34f9dd",
+      "priority": 4
+    },
+    {
+      "id": "852",
+      "description": "Official Selection",
+      "color": "009a0f",
+      "priority": 9
+    },
+    {
+      "id": "1233",
+      "description": "Our Time is Now: Coming of Age at the Movies",
+      "color": "0072c2",
+      "priority": 4
+    },
+    {
+      "id": "556",
+      "description": "Take 2",
+      "color": "00ff3b",
+      "priority":11 
+    },
+    {
+      "id": "other",
+      "description": "Other",
+      "color": "9f7160",
+      "priority":99 
+    }
+  ],
   "unused badges": {
     "other": "9f7160",
     "827": "GFF",
