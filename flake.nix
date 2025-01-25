@@ -7,7 +7,6 @@
       url = "github:NeilDarach/nixNvim";
       inputs = {
         nixpkgs.follows = "nixpkgs";
-        rust-overlay.follows = "rust-overlay";
       };
     };
     rust-overlay = {
@@ -59,14 +58,28 @@
           };
       };
       devShells = forEachSupportedSystem ({ pkgs }: {
+                #crossSystem.config = "x86_64-unknown-linux-musl";
         default = pkgs.mkShell {
-          packages = with pkgs; [ sops typst nvim rustToolchain just bacon ];
+          packages = with pkgs; [
+            nodejs
+            sops
+            typst
+            nvim
+            rustToolchain
+            just
+            bacon
+          ];
           shellHook = ''
             set -a
             COOKIE="$(${pkgs.sops}/bin/sops --extract '["gff_website_cookie"]' --decrypt ${
               toString ./secrets.yaml
             })"
             set +a
+            if [[ ! -f "calendar-access/film-festival.json" ]]; then
+              ${pkgs.sops}/bin/sops --extract '["google_calendar_credentials"]' --decrypt "${
+                toString ./secrets.yaml
+              }" > calendar-access/film-festival.json
+            fi
           '';
           env = {
             RUST_SRC_PATH =
@@ -76,3 +89,4 @@
       });
     };
 }
+
