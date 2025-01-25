@@ -69,7 +69,7 @@ async fn route(
     Ok(response)
 }
 
-static SERVICE_CREDENTIALS: &[u8] = include_bytes!("../film-festival-412409-0f5937683c0c.json");
+static SERVICE_CREDENTIALS: &[u8] = include_bytes!("../film-festival.json");
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {

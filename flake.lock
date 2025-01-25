@@ -564,17 +564,14 @@
         "nixCats": "nixCats",
         "nixpkgs": [
           "nixpkgs"
-        ],
-        "rust-overlay": [
-          "rust-overlay"
         ]
       },
       "locked": {
-        "lastModified": 1727623967,
-        "narHash": "sha256-xDK1bdmjHYdsXcYJD8jdlIXaOLxy1fzrTQ0Lopi0qhk=",
+        "lastModified": 1734183681,
+        "narHash": "sha256-tasAR9nM5xm2M512NReb+SO6E/gfbOD8Gj4qQgnklaY=",
         "owner": "NeilDarach",
         "repo": "nixNvim",
-        "rev": "1b55c88839a0622bee12a16e1a913a290c860269",
+        "rev": "977e165f1b954ac29842104d0cc21e0eed938d2e",
         "type": "github"
       },
       "original": {
