@@ -85,7 +85,7 @@ impl Events {
             let req = Channel {
                 id: Some(self.uuid.clone()),
                 token: Some("gff2024".to_owned()),
-                address: Some(format!("https://goip.org.uk:3020/change/{}", self.uuid).to_owned()),
+                address: Some(format!("https://goip.org.uk/gff/change/{}", self.uuid).to_owned()),
                 params: Some(map),
                 type_: Some("webhook".to_owned()),
                 ..Default::default()
@@ -109,7 +109,10 @@ impl Events {
         let mut response;
         let mut new_sync_token = None;
         if let Some(hub) = &self.hub {
-            let mut builder = hub.events().list(cal_id);
+            let mut builder = hub
+                .events()
+                .list(cal_id)
+                .time_min(chrono::Utc::now() - chrono::Duration::days(1));
             if let Some(token) = sync_token {
                 builder = builder.sync_token(&token);
             }
@@ -379,11 +382,13 @@ pub fn screen(evt: &Event) -> String {
             "GFT 1" => "GFT1",
             "GFT 2" => "GFT2",
             "GFT 3" => "GFT3",
-            "Cineworld Screen 1" => "C1",
-            "Cineworld Screen 2" => "C2",
+            "Cineworld 1" => "C1",
+            "Cineworld 2" => "C2",
             "Cottiers" => "Cot",
             "Barras Art & Design (BAoD)" => "Barras",
             "CCA Cinema" => "CCA",
+            "Grand Ole Opry" => "GOO",
+            "Adelaide Place" => "Adelaide",
             _ => "?",
         })
         .to_owned()

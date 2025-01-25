@@ -1,6 +1,5 @@
 use futures::join;
 use google_calendar3::Error;
-use hyper::server::conn::AddrIncoming;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::Client;
 use hyper::Server;
@@ -8,28 +7,11 @@ use hyper::{Body, Method, Request, Response, StatusCode};
 use std::convert::Infallible;
 use std::sync::Arc;
 use std::time::Duration;
-use tls_listener::TlsListener;
 use tokio::sync::Mutex;
 use tokio::{task, time};
 use yup_oauth2::parse_service_account_key;
 
 mod calendar;
-const CERT: &[u8] = include_bytes!("../darach.cert");
-const PKEY: &[u8] = include_bytes!("../darach.key");
-
-fn tls_acceptor() -> tokio_rustls::TlsAcceptor {
-    use tokio_rustls::rustls::{Certificate, PrivateKey, ServerConfig};
-    let key = PrivateKey(PKEY.into());
-    let cert = Certificate(CERT.into());
-    Arc::new(
-        ServerConfig::builder()
-            .with_safe_defaults()
-            .with_no_client_auth()
-            .with_single_cert(vec![cert], key)
-            .unwrap(),
-    )
-    .into()
-}
 
 async fn route(
     req: Request<Body>,
@@ -69,7 +51,7 @@ async fn route(
     Ok(response)
 }
 
-static SERVICE_CREDENTIALS: &[u8] = include_bytes!("../film-festival-412409-0f5937683c0c.json");
+static SERVICE_CREDENTIALS: &[u8] = include_bytes!("../film-festival.json");
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -89,7 +71,7 @@ async fn main() -> Result<(), Error> {
         .await
         .expect("failed to create authenticator");
     let state = Arc::new(Mutex::new(calendar::Events::new(client, auth)));
-    let addr = ([0, 0, 0, 0], 3020).into();
+    let addr = ([127, 0, 0, 1], 3020).into();
     let svc = make_service_fn(|_| {
         let state = state.clone();
 
@@ -100,8 +82,7 @@ async fn main() -> Result<(), Error> {
             }))
         }
     });
-    let incoming = TlsListener::new(tls_acceptor(), AddrIncoming::bind(&addr).unwrap());
-    let server = Server::builder(incoming).serve(svc);
+    let server = Server::bind(&addr).serve(svc);
     let state = state.clone();
     let renew = task::spawn(async move {
         let state = state.clone();
