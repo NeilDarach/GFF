@@ -2,8 +2,7 @@
   flipped: true,
   paper: "a4",
   margin: (inside: 2.5cm, outside: 2cm, y: 1.75cm),
-  footer: locate(loc => {
-      [ GFF 2025 #h(1fr) #counter(page).display("1") ]   }),
+  footer: context [ GFF 2026 #h(1fr) #counter(page).display("1") ],
   number-align: center,
   )
 #set par(justify: false)

@@ -2,21 +2,15 @@ default:
     echo "Not a command""
 
 rebuild:
-    ./getIds.sh > ids.json
-    cat ids.json | jq -r keys[] | xargs -n 1 ./get_showings.sh | jq -s . > showings.json
-    ./showing-to-csv.sh 
-    just posters
-    just summary
+    ./scripts/getIds.sh > ./brochure/ids.json
+    cat ./brochure/ids.json | jq -r keys[] | xargs -n 1 ./scripts/get_showings.sh | jq -s . > ./brochure/showings.json
+    ./scripts/showing-to-csv.sh ./brochure/showings.json > ./brochure/showings.csv
+    ./scripts/showing-to-ics.sh ./brochure/showings.json > ./brochure/showings.ics
+    ./scripts/fetchImages.sh ./brochure/showings.json
     just brochure
 
 brochure:
-    jq --slurpfile ref ref.json 'import "gff" as gff; . | gff::generateBrochure ' showings.json > brochure/brochure.json
-    cd brochure; typst compile brochure.typ
+    jq --slurpfile ref ./brochure/ref.json 'import "./scripts/gff" as gff; . | gff::generateSummary ' ./brochure/showings.json > brochure/summary.json
+    jq --slurpfile ref ./brochure/ref.json 'import "./scripts/gff" as gff; . | gff::generateBrochure ' ./brochure/showings.json > brochure/brochure.json
+    cd brochure; typst compile summary.typ; typst compile brochure.typ
 
-summary:
-    jq --slurpfile ref ref.json 'import "gff" as gff; . | gff::generateSummary ' showings.json > summary/summary.json
-    cp summary/summary.json brochure
-    cd summary; typst compile summary.typ
-
-posters:
-    ./fetchImages.sh

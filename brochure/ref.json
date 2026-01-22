@@ -3,13 +3,12 @@
     "171": "GFT 1",
     "172": "GFT 2",
     "175": "GFT 3",
-    "228": "Cottiers",
-    "229": "BAaD",
-    "230": "Cineworld 1",
-    "231": "Cineworld 2",
-    "232": "CCA Cinema",
-    "319": "Grand Ole Opry",
-    "321": "Adelaide Place"
+        "469" : "Odeon 10",
+        "470" : "Odeon 11",
+        "473" : "Odeon 12",
+        "471" : "Pyramid",
+        "472" : "PWYC",
+        "474" : "Special"
   },
   "strands": [
     {
@@ -19,51 +18,51 @@
       "priority": 2
     },
     {
+      "id": "1600",
+      "description": "Marilyn-Monroe 100",
+      "color": "344798",
+      "priority": 0
+    },
+    {
       "id": "858",
       "description": "Gala",
-      "color": "e30512",
+      "color": "f2c170",
       "priority": 0
     },
     {
       "id": "857",
       "description": "FrightFest",
-      "color": "508b98",
+      "color": "946c0c",
       "priority": 4
     },
     {
       "id": "854",
       "description": "Audience Award",
-      "color": "b3ad00",
+      "color": "a30053",
       "priority": 4
     },
     {
       "id": "855",
       "description": "Country Focus",
-      "color": "ec6706",
+      "color": "00997e",
       "priority": 4
     },
     {
-      "id": "1234",
-      "description": "Mai Zetterling Focus",
-      "color": "34f9dd",
+      "id": "1591",
+      "description": "Truth to Power",
+      "color": "d9cdcc",
       "priority": 4
     },
     {
       "id": "852",
       "description": "Official Selection",
-      "color": "009a0f",
+      "color": "6596d0",
       "priority": 9
-    },
-    {
-      "id": "1233",
-      "description": "Our Time is Now: Coming of Age at the Movies",
-      "color": "0072c2",
-      "priority": 4
     },
     {
       "id": "556",
       "description": "Take 2",
-      "color": "00ff3b",
+      "color": "f1001c",
       "priority":11 
     },
     {

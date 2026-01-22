@@ -62,6 +62,9 @@ def icalEnd:
   .movie.duration as $duration | .time | fromdate + ($duration * 60) | todate | icalStart
 ;
 
+def capitalize:
+  (.[:1] | ascii_upcase) + .[1:];
+
 
 def sortName:
   if startswith("The ") then (.[4:]+", The") 
@@ -69,7 +72,7 @@ def sortName:
   else if startswith("An ") then (.[3:]+", An") 
   else if startswith("FrightFest ") then (.[11:]+", FrightFest") 
   else if startswith("Take 2: ") then (.[8:]+", Take 2") 
-  else . end end end end end
+  else . end end end end end | capitalize
   ;
 
 
@@ -133,7 +136,7 @@ def tr:
   ;
 
 def stripSynopsis:
-  gsub("______*";"____";"m")|gsub("\\*";"\\*";"")|gsub("</?[iI]/?>";"_";"m")|gsub("<a [^>]+>(?<a>[^<]+)</a>";"\(.a)";"m")|gsub("</style>";"";"m")|gsub("</?font[^>]*>";"";"m")|gsub("<[bB]>(?<b>[^<]*)</[bB]>";"#strong[\(.b)]";"m")|gsub("<[iI]>(?<i>[^<]*)</[iI]>";"#emph[\(.i)]";"m")|gsub("</?[^>]+/?>";"";"m")|tr
+  gsub("______*";"____";"m")|gsub("\\*";"\\*";"")|gsub("</?[iI]/?>";"_";"m")|gsub("<a [^>]+>(?<a>[^<]+)</a>";"\(.a)";"m")|gsub("</style>";"";"m")|gsub("</?font[^>]*>";"";"m")|gsub("<[bB]>(?<b>[^<]*)</[bB]>";"#strong[\(.b)]";"m")|gsub("<[iI]>(?<i>[^<]*)</[iI]>";"#emph[\(.i)]";"m")|gsub("</?[^>]+/?>";"";"m")|gsub("[$]";"\\$";"")|tr
   ;
 
 def generateBrochureData:
@@ -160,8 +163,7 @@ def  generateIcal:
   .
   ;
 
-
 def generateSummary:
-  [ .[] | {"id":.movie.id, "date":.time[:10], "screen":.screenId, "day":(.time|get_day), "start": .time[11:16],"title": .movie.name, "duration":.movie.duration, "strand": (.showingBadgeIds|getStrand),"color":(.showingBadgeIds|getStrandColor) }] | sort_by(.screen)|group_by(.date) | map({"key": .[0].date, value: (map(.)|group_by(.screen)|map({"key":(.[0].screen|getScreen), value: map({"start":.start,"title":.title,"strand":.strand,"duration":.duration,"color":.color, "id":.id,"day":.day})}))|from_entries}) | from_entries
+  [ .[] | {"id":.movie.id, "date":.time[:10], "screen":.screenId, "day":(.time|get_day), "start": .time[11:16],"title": (.movie.name | capitalize), "duration":.movie.duration, "strand": (.showingBadgeIds|getStrand),"color":(.showingBadgeIds|getStrandColor) }] | sort_by(.screen)|group_by(.date) | map({"key": .[0].date, value: (map(.)|group_by(.screen)|map({"key":(.[0].screen|getScreen), value: map({"start":.start,"title":.title,"strand":.strand,"duration":.duration,"color":.color, "id":.id,"day":.day})}))|from_entries}) | from_entries
   ;
 
