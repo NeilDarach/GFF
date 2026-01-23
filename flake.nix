@@ -67,7 +67,9 @@
         pi =
           (makePkgs "aarch64-unknown-linux-musl").callPackage ./calendar-access
           { };
-        mac =
+        mac = if (pkgs.stdenv.hostPlatform.system == "aarch64-darwin") then
+          pkgs.callPackage ./calendar-access { }
+        else
           (makePkgs "aarch64-unknown-darwin-musl").callPackage ./calendar-access
           { };
         x86 =
