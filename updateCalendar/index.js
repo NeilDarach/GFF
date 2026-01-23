@@ -16,7 +16,7 @@ google.options({ auth: serviceAccount });
 async function listEvents() {
   const calendar = google.calendar('v3');
   const res = await calendar.events.list({
-    calendarId: TEST_CALENDAR,
+    calendarId: LIVE_CALENDAR,
     timeMin: new Date().toISOString(),
     maxResults: 1000,
     singleEvents: true,
@@ -55,7 +55,7 @@ async function changeColor(eventId,colorId) {
   console.log(`Changing color of ${eventId}`);
   const calendar = google.calendar('v3');
   const res = await calendar.events.patch({
-    calendarId: TEST_CALENDAR,
+    calendarId: LIVE_CALENDAR,
     eventId: eventId,
     resource: { colorId: colorId }
   });
@@ -94,7 +94,7 @@ async function recolor() {
         if (event.colorId != colorId) {
     console.log(`Changing ${event.summary} in ${event.location} to ${colorId}`);
     changeColor(event.id,colorId); 
-    await sleep(200);
+    await sleep(300);
         }
   }
 }
@@ -105,7 +105,7 @@ async function clear() {
   console.log(`Got ${events.length} events`);
   for (event of events) {
     const res = await calendar.events.delete({
-    calendarId: TEST_CALENDAR,
+    calendarId: LIVE_CALENDAR,
     eventId: event.id,
   });
   console.log(res);

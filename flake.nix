@@ -23,26 +23,33 @@
 
   outputs = { self, nixpkgs, nixnvim, rust, rust-overlay, ... }@inputs:
     let
-      supportedSystems =
-        [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+      supportedSystems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ];
+      overlays = [ (import rust-overlay) ];
       forEachSupportedSystem = f:
         nixpkgs.lib.genAttrs supportedSystems (system:
           let
-            pkgs = import nixpkgs {
-              inherit system;
-              overlays = (rust.overlays.withExtensions {
-                targ = [ "x86_64-unknown-linux-musl" ];
-              });
-            };
-          in f { inherit pkgs; });
+            pkgs = import nixpkgs { inherit system overlays; };
+            makePkgs = config:
+              import nixpkgs {
+                inherit overlays system;
+                crossSystem = {
+                  inherit config;
+                  rustc = { inherit config; };
+                  isStatic = true;
+                };
+              };
+          in f { inherit pkgs makePkgs; });
     in {
-      devShells = forEachSupportedSystem ({ pkgs }: {
-        default = rust.makeDevShell pkgs {
+      devShells = forEachSupportedSystem ({ pkgs, ... }: {
+        default = pkgs.mkShell {
           packages = with pkgs; [
             nodejs
             sops
             typst
             inputs.nixnvim.packages.${pkgs.stdenv.hostPlatform.system}.nvim
+            (rust-bin.stable.latest.default.override {
+              targets = [ "x86_64-unknown-linux-musl" "aarch64-apple-darwin" ];
+            })
           ];
           shellHook = ''
             export COOKIE="$(${pkgs.sops}/bin/sops --extract '["gff_website_cookie"]' --decrypt ${
@@ -56,6 +63,18 @@
           '';
         };
       });
+      packages = forEachSupportedSystem ({ pkgs, makePkgs }: {
+        pi =
+          (makePkgs "aarch64-unknown-linux-musl").callPackage ./calendar-access
+          { };
+        mac =
+          (makePkgs "aarch64-unknown-darwin-musl").callPackage ./calendar-access
+          { };
+        x86 =
+          (makePkgs "x86_64-unknown-linux-musl").callPackage ./calendar-access
+          { };
+      });
+
     };
 }
 
