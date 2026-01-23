@@ -6,6 +6,7 @@ use hyper::Server;
 use hyper::{Body, Method, Request, Response, StatusCode};
 use std::convert::Infallible;
 use std::sync::Arc;
+use std::fs;
 use std::time::Duration;
 use tokio::sync::Mutex;
 use tokio::{task, time};
@@ -51,13 +52,12 @@ async fn route(
     Ok(response)
 }
 
-static SERVICE_CREDENTIALS: &[u8] = include_bytes!("../film-festival.json");
-
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    // Load the secretn
+    // Load the secrets
+    let service_credentials =  fs::read_to_string("./google-auth.json").expect("Credentials file is missing");
     let service_key =
-        parse_service_account_key(SERVICE_CREDENTIALS).expect("bad gmail credentials");
+        parse_service_account_key(service_credentials).expect("bad gmail credentials");
 
     let client = Client::builder().build(
         hyper_rustls::HttpsConnectorBuilder::new()
