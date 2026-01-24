@@ -17,3 +17,9 @@ brochure:
 summaries:
     cd ./updateCalendar ; node filter-summary.js > ../brochure/filter-summary.json
     cd ./brochure ; typst compile filter-summary.typ
+
+publish:
+    just brochure
+    scp ./brochure/brochure.pdf "root@goip.org.uk:/opt/nginx/www/gff-2026-v$(cat ./brochure/version.txt).pdf"
+    ssh root@goip.org.uk "ln -sf gff-2026-v$(cat ./brochure/version.txt).pdf /opt/nginx/www/gff-2026.pdf"
+    echo "$(( 1 + $(cat ./brochure/version.txt)))" > ./brochure/version.txt

@@ -1,6 +1,7 @@
 #import "@preview/in-dexter:0.7.2": *
 #import "@preview/wrap-it:0.1.1": wrap-content
 #import "summary.typ": generate_summary
+#let version = read("version.txt") 
 #set page(
   paper: "a4",
   margin: (inside: 2.0cm, outside: 1.5cm, y: 1.75cm),
@@ -9,9 +10,9 @@
     #if headings.len() == 0  { return }
     #let p=counter(page).display("1")
     #let f = if calc.odd(here().page()) {
-      "GFF 2026 - " + h(1fr) + p 
+      "GFF 2026 v" + version + h(1fr) + p 
     } else {
-      p + h(1fr) + " - GFF 2026"
+      p + h(1fr) + "GFF 2026 v" + version
     }
     #text(size: 0.8em)[#f]],
   number-align: center,
