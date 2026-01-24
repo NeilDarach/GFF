@@ -8,11 +8,12 @@ use std::collections::HashMap;
 use std::time::SystemTime;
 use uuid::Uuid;
 use yup_oauth2::authenticator::Authenticator;
+use std::env::var;
+use std::sync::LazyLock;
 
-static MAIN_CALENDAR: &str =
-    "c12717e59b8cbf4e58b2eb5b0fe0e8aa823cf71943cab642507715cd86db80f8@group.calendar.google.com";
-static FILTERED_CALENDAR: &str =
-    "70ff6ebc2f94e898b99fa265e71b4d8cd7f2087728d78e9e75f537813b678974@group.calendar.google.com";
+static MAIN_CALENDAR: LazyLock<String> = LazyLock::new(|| { var("GFF_FULL_ID").expect("GFF_FULL_ID should be set to a google calendar id")});
+static FILTERED_CALENDAR: LazyLock<String> = LazyLock::new(|| { var("GFF_FILTER_ID").expect("GFF_FILTER_ID should be set to a google calendar id")});
+static CALLBACK_URL: LazyLock<String> = LazyLock::new(|| { var("GFF_CALLBACK").expect("GFF_CALLBACK should be set to an external url for google to notify changes to")});
 
 /*
 * Main calendar with all events.  Each event has an id (main_id).
@@ -85,13 +86,13 @@ impl Events {
             let req = Channel {
                 id: Some(self.uuid.clone()),
                 token: Some("gff2024".to_owned()),
-                address: Some(format!("https://goip.org.uk/gff/change/{}", self.uuid).to_owned()),
+                address: Some(format!("{}/{}",&*CALLBACK_URL, self.uuid).to_owned()),
                 params: Some(map),
                 type_: Some("webhook".to_owned()),
                 ..Default::default()
             };
             println!("Creating watch with {:?}", req);
-            let result = hub.events().watch(req, MAIN_CALENDAR).doit().await;
+            let result = hub.events().watch(req, &*MAIN_CALENDAR).doit().await;
             println!("Created watch with {:?}", result);
             if let Ok(res) = result {
                 self.watch_ids = Some((res.1.id.unwrap(), res.1.resource_id.unwrap()));
@@ -133,7 +134,7 @@ impl Events {
     }
 
     pub async fn load_main(&mut self) -> Result<(), Error> {
-        let (_, events) = self.all_events(MAIN_CALENDAR, None).await?;
+        let (_, events) = self.all_events(&*MAIN_CALENDAR, None).await?;
         for evt in events {
             if Some("cancelled") != evt.status.as_deref() {
                 self.main_events
@@ -144,7 +145,7 @@ impl Events {
     }
 
     pub async fn load_filtered(&mut self) -> Result<(), Error> {
-        let (_, events) = self.all_events(FILTERED_CALENDAR, None).await?;
+        let (_, events) = self.all_events(&*FILTERED_CALENDAR, None).await?;
         for evt in events {
             if Some("cancelled") != evt.status.as_deref() {
                 self.filter_events
@@ -240,7 +241,7 @@ impl Events {
                 let filter_evt = self.filter_events.get(&id).unwrap();
                 let orig_id = Self::get_orig_id(filter_evt).unwrap();
                 self.main_to_filter.remove(&orig_id);
-                hub.events().delete(FILTERED_CALENDAR, &id).doit().await?;
+                hub.events().delete(&*FILTERED_CALENDAR, &id).doit().await?;
                 println!("Deleted id {}", id);
             }
         }
@@ -259,7 +260,7 @@ impl Events {
                 hub.events()
                     .update(
                         new_evt.clone(),
-                        FILTERED_CALENDAR,
+                        &*FILTERED_CALENDAR,
                         filter.id.as_ref().unwrap(),
                     )
                     .doit()
@@ -274,7 +275,7 @@ impl Events {
     pub async fn add_filtered_event(&mut self, evt: &Event) -> Result<(), Error> {
         if let Some(hub) = &self.hub {
             let fevt = populate_event(evt, Default::default());
-            hub.events().insert(fevt, FILTERED_CALENDAR).doit().await?;
+            hub.events().insert(fevt, &*FILTERED_CALENDAR).doit().await?;
         }
         Ok(())
     }

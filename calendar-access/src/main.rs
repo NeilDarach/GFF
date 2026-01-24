@@ -11,6 +11,7 @@ use std::time::Duration;
 use tokio::sync::Mutex;
 use tokio::{task, time};
 use yup_oauth2::parse_service_account_key;
+use std::env::var;
 
 mod calendar;
 
@@ -55,7 +56,8 @@ async fn route(
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     // Load the secrets
-    let service_credentials =  fs::read_to_string("./google-auth.json").expect("Credentials file is missing");
+    let service_cred_location = var("GFF_AUTH").expect("GFF_AUTH should be set to locate the credentials file");
+    let service_credentials =  fs::read_to_string(service_cred_location).expect("Credentials file is missing");
     let service_key =
         parse_service_account_key(service_credentials).expect("bad gmail credentials");
 
@@ -71,7 +73,7 @@ async fn main() -> Result<(), Error> {
         .await
         .expect("failed to create authenticator");
     let state = Arc::new(Mutex::new(calendar::Events::new(client, auth)));
-    let addr = ([127, 0, 0, 1], 3020).into();
+    let addr = ([0, 0, 0, 0], 3020).into();
     let svc = make_service_fn(|_| {
         let state = state.clone();
 
