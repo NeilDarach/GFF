@@ -130,6 +130,8 @@
                   Type = "simple";
                   ExecStart = "${gff}/bin/calendar-access";
                   EnvironmentFile = config.gff.envFile;
+                  User = "gff";
+                  Group = "gff";
                 };
                 wantedBy = [ "multi-user.target" ];
               };
