@@ -14,3 +14,6 @@ brochure:
     jq --slurpfile ref ./brochure/ref.json 'import "./scripts/gff" as gff; . | gff::generateBrochure ' ./brochure/showings.json > brochure/brochure.json
     cd brochure; typst compile summary.typ; typst compile brochure.typ
 
+summaries:
+    cd ./updateCalendar ; node filter-summary.js > ../brochure/filter-summary.json
+    cd ./brochure ; typst compile filter-summary.typ

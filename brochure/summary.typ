@@ -14,7 +14,7 @@ let filmBox(body,start:"10:00",duration:30,color:blue,row:0,id:"")= {
     place(dx:pct((int(h)*60)+int(m)-600)+screenCol+2pt,dy:8pt+(row*rowOffset))[#mybox(fill: color)[#title]]
 }
 let screen(name:"",row:0) = {
-      place(dx:0%,dy:10pt+(rowOffset*row))[#box(width: screenCol,height: 10pt,clip:true,outset:(x:-1pt))[#name]]
+      place(dx:0%,dy:10pt+(rowOffset*row))[#box(width: screenCol,height: 10pt,clip:true,outset:(x:1pt))[ #name]]
     }
 let mygrid(lines) ={
     let i = 0
