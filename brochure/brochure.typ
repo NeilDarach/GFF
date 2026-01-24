@@ -46,7 +46,7 @@
 #if film.strand != "" [ #film.strand\ ]
 #text(size: 0.8em)[
 #for s in film.showings [
-#s.date, #s.time - #s.screen\
+#link(label("s" + s.datetime.slice(0,10)))[#s.date, #s.time - #s.screen] \
 ]]
 
         #let sidebar = ()

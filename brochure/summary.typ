@@ -35,7 +35,7 @@ for (day,showings) in json(inputFile) {
 }
   if filtered.len() > 0 {
 block(breakable: false)[
-    == #day - #filtered.pairs().at(0).at(1).at(0).day
+    == #day - #filtered.pairs().at(0).at(1).at(0).day #label("s"+day+suffix) 
     #rect(width: 100%, height: (rowOffset*filtered.len()) + 12pt)[
       #mygrid(filtered.len())
       #let row=0
