@@ -19,9 +19,13 @@
       url = "github:oxalica/rust-overlay";
       inputs = { nixpkgs.follows = "nixpkgs"; };
     };
+    secrets = {
+      url = "git+ssh://git@github.com/NeilDarach/secrets.git?shallow=1";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs, nixnvim, rust, rust-overlay, ... }@inputs:
+  outputs = { self, nixpkgs, nixnvim, rust, rust-overlay, secrets, ... }@inputs:
     let
       supportedSystems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ];
       overlays = [ (import rust-overlay) ];
@@ -53,14 +57,14 @@
             })
           ];
           shellHook = ''
-            export COOKIE="$(${pkgs.sops}/bin/sops --extract '["gff_website_cookie"]' --decrypt ${
-              toString ./secrets.yaml
-            })"
+            export COOKIE="$(${pkgs.sops}/bin/sops --extract '["gff-website-cookie"]' --decrypt ${secrets}/secrets.yaml)"
             if [[ ! -f "google-auth.json" ]]; then
-              ${pkgs.sops}/bin/sops --extract '["google_calendar_credentials"]' --decrypt "${
-                toString ./secrets.yaml
-              }" > google-auth.json
+              ${pkgs.sops}/bin/sops --extract '["gff-google-calendar-auth"]' --decrypt "${secrets}/secrets.yaml" > google-auth.json
             fi
+              export GFF_AUTH="./google-auth.json"
+              export GFF_FILTER_ID="$(${pkgs.sops}/bin/sops --extract '["gff-filter-id"]' --decrypt ${secrets}/secrets.yaml)"
+              export GFF_FULL_ID="$(${pkgs.sops}/bin/sops --extract '["gff-full-id"]' --decrypt ${secrets}/secrets.yaml)"
+              export GFF_CALLBACK="https://goip.org.uk/gff/change"
           '';
         };
       });

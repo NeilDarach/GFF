@@ -11,6 +11,7 @@ const serviceAccount = new google.auth.GoogleAuth ({
 const TEST_CALENDAR = 'cfc6770c1350359a9a5012005a502636f82734ab014cc402882adde95ceb99c5@group.calendar.google.com';
 const LIVE_CALENDAR = 'c12717e59b8cbf4e58b2eb5b0fe0e8aa823cf71943cab642507715cd86db80f8@group.calendar.google.com';
 google.options({ auth: serviceAccount });
+const summary = require('../brochure/summary.json');
 
 
 async function listEvents() {
@@ -43,7 +44,7 @@ async function listCalendars(auth) {
     return;
   }
   calendars.map((cal,i) => { 
-    console.log(`${cal.summary} - ${cal.id}`);
+    //console.log(`${cal.summary} - ${cal.id}`);
   });
 }
 
@@ -62,6 +63,17 @@ async function changeColor(eventId,colorId) {
   console.log(res);
 }
 
+async function setExtendedProperties(eventId,dict) {
+  console.log(`Changing extended properties of ${eventId}`);
+  const calendar = google.calendar('v3');
+  const res = await calendar.events.patch({
+    calendarId: LIVE_CALENDAR,
+    eventId: eventId,
+    resource: { extendedProperties: { shared: dict } }
+  })
+  //console.log(`extended: ${JSON.stringify(res)}`);
+}
+
 // 1 dusky purple
 // 2 green
 // 3 purple
@@ -76,7 +88,7 @@ function sleep(ms) {
 }
 
 async function recolor() {
-  const events = await listEvents();
+  const events = (await listEvents());
   console.log(`Got ${events.length} events`);
   for (event of events) {
     switch(event.location) {
@@ -96,11 +108,30 @@ async function recolor() {
     changeColor(event.id,colorId); 
     await sleep(300);
         }
+    var date = event.start.dateTime.substring(0,10);
+        screen = event.location;
+        entry = summary[date][screen].find((each) => each["title"].toUpperCase() == event.summary.toUpperCase());
+        if (entry == undefined) {
+            console.log(`No entry for ${event.summary}`);
+        }
+    dict = {"strand": (entry["strand"] ?? "none"),
+            color: entry["color"],
+        screen: screen};
+        prop = (event.extendedProperties ?? {})["shared"] ?? {};
+            if (((prop["strand"] ?? "") != dict["strand"]) ||
+                ((prop["color"] ?? "") != dict["color"]) ||
+                ((prop["screen"] ?? "") != dict["screen"])) {
+    console.log(`Changing ${event.summary} extended properties to ${JOSN.stringify(dict)}`);
+    setExtendedProperties(event.id,dict); 
+    await sleep(400);
+
+
+        }
   }
 }
 
 async function clear() {
-  const events = await listEvents();
+  const events = (await listEvents()).slice(2,4);
   const calendar = google.calendar('v3');
   console.log(`Got ${events.length} events`);
   for (event of events) {
@@ -108,7 +139,7 @@ async function clear() {
     calendarId: LIVE_CALENDAR,
     eventId: event.id,
   });
-  console.log(res);
+  //console.log(res);
     await sleep(500);
   }
 }
@@ -117,4 +148,7 @@ async function clear() {
 //authorize().then(listEvents).catch(console.error)
 //authorize().then((auth) => { changeColor(auth,'_8d9lcgrfdpr6asjkcgqj0cj56kp68e9mcpgjgob16cpj6dr36lj3aohjcgqm6d346osg') }).catch(console.error)
 //authorize().then((auth) => { recolor(auth) }).catch(console.error)
-(async () => { await recolor(); })();
+(async () => { 
+    await recolor();
+ //console.log(JSON.stringify((await listEvents())[0])); 
+ })();

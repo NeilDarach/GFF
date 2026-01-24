@@ -750,7 +750,8 @@
         "nixnvim": "nixnvim",
         "nixpkgs": "nixpkgs_6",
         "rust": "rust",
-        "rust-overlay": "rust-overlay"
+        "rust-overlay": "rust-overlay",
+        "secrets": "secrets"
       }
     },
     "rust": {
@@ -797,6 +798,23 @@
         "owner": "oxalica",
         "repo": "rust-overlay",
         "type": "github"
+      }
+    },
+    "secrets": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1769273515,
+        "narHash": "sha256-QOCBaFNtcxU2Y9FCu7NrUdw+iFBOyfi2AmcKDn+sOY8=",
+        "ref": "refs/heads/main",
+        "rev": "6a678ffaee8d36ef5cc1d20dae7f02ade44be1cf",
+        "shallow": true,
+        "type": "git",
+        "url": "ssh://git@github.com/NeilDarach/secrets.git"
+      },
+      "original": {
+        "shallow": true,
+        "type": "git",
+        "url": "ssh://git@github.com/NeilDarach/secrets.git"
       }
     },
     "systems": {

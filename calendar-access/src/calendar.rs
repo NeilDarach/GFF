@@ -333,7 +333,7 @@ pub fn is_different(evt1: &Event, evt2: &Event) -> bool {
     false
 }
 
-pub fn set_source_id(evt: &mut Event, id: &str) {
+pub fn set_extended_properties(evt: &mut Event, orig: &Event) {
     if evt.extended_properties.is_none() {
         evt.extended_properties = Some(Default::default());
     }
@@ -341,13 +341,21 @@ pub fn set_source_id(evt: &mut Event, id: &str) {
         evt.extended_properties.as_mut().unwrap().shared = Some(Default::default());
     }
 
-    evt.extended_properties
+    let id = orig.id.as_ref().unwrap();
+    let screen = orig.extended_properties.as_ref().unwrap().shared.as_ref().unwrap().get("screen").unwrap().to_string();
+    let color = orig.extended_properties.as_ref().unwrap().shared.as_ref().unwrap().get("color").unwrap().to_string();
+    let strand = orig.extended_properties.as_ref().unwrap().shared.as_ref().unwrap().get("strand").unwrap().to_string();
+    let props = evt.extended_properties
         .as_mut()
         .unwrap()
         .shared
         .as_mut()
-        .unwrap()
-        .insert("sourceid".to_owned(), id.to_string());
+        .unwrap();
+
+        props.insert("sourceid".to_owned(), id.to_string());
+        props.insert("screen".to_owned(), screen.to_string());
+        props.insert("color".to_owned(), color.to_string());
+        props.insert("strand".to_owned(), strand.to_string());
 }
 
 pub fn get_source_id(evt: &Event) -> Option<String> {
@@ -363,7 +371,8 @@ pub fn get_source_id(evt: &Event) -> Option<String> {
 }
 
 pub fn populate_event(orig: &Event, mut filter: Event) -> Event {
-    set_source_id(&mut filter, orig.id.as_ref().unwrap());
+    set_extended_properties(&mut filter, &orig);
+    
 
     filter.summary =
         Some(format!("{} - {} - {}", title(orig), screen(orig), people(orig)).to_string());
@@ -383,13 +392,12 @@ pub fn screen(evt: &Event) -> String {
             "GFT 1" => "GFT1",
             "GFT 2" => "GFT2",
             "GFT 3" => "GFT3",
-            "Cineworld 1" => "C1",
-            "Cineworld 2" => "C2",
-            "Cottiers" => "Cot",
-            "Barras Art & Design (BAoD)" => "Barras",
-            "CCA Cinema" => "CCA",
-            "Grand Ole Opry" => "GOO",
-            "Adelaide Place" => "Adelaide",
+            "Odeon 10" => "O10",
+            "Odeon 11" => "O11",
+            "Odeon 12" => "O12",
+            "Pyramid" => "Pyr",
+            "PYWC" => "PYWC",
+            "Special" => "Sp",
             _ => "?",
         })
         .to_owned()
@@ -404,11 +412,12 @@ pub fn color_id(evt: &Event) -> &str {
             "GFT 1" => "1",
             "GFT 2" => "2",
             "GFT 3" => "3",
-            "Cineworld Screen 1" => "4",
-            "Cineworld Screen 2" => "5",
-            "Cottiers" => "6",
-            "Barras Art & Design (BAoD)" => "7",
-            "CCA Cinema" => "8",
+            "Odeon 10" => "4",
+            "Odeon 11" => "5",
+            "Odeon 12" => "6",
+            "Pyramid" => "7",
+            "PYWC" => "8",
+            "Special" => "9",
             _ => "10",
         }
     } else {
