@@ -64,6 +64,7 @@
         };
       });
       packages = forEachSupportedSystem ({ pkgs, makePkgs }: {
+        default = pkgs.callPackage ./calendar-access { };
         pi =
           (makePkgs "aarch64-unknown-linux-musl").callPackage ./calendar-access
           { };
