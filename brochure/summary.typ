@@ -5,10 +5,10 @@ let pct(mins) = { (((100%-screenCol)/14)*((mins /60))) }
 let filmBox(body,start:"10:00",duration:30,color:blue,row:0,id:"")= {
     let (h,m) = start.split(":")
     let st = (int(h)*60)
-    let title = if id == "" { 
+    let title = context { if (id == "" or query(label(id)).len() == 0) { 
     text(size:0.75em)[#body] } else {
     link(label(id))[#text(size:0.75em)[#body]]
-    }
+    }}
     let mybox(body,fill: white) = box(height: 35pt, width: pct(duration),fill: fill,stroke: 1pt+black,clip:true,inset:2pt,radius:3pt,outset:(x:0pt,y:1pt))[#body]
     place(dx:pct((int(h)*60)+int(m)-600)+screenCol+2pt,dy:8pt+(row*rowOffset))[#mybox(fill: white)[]]
     place(dx:pct((int(h)*60)+int(m)-600)+screenCol+2pt,dy:8pt+(row*rowOffset))[#mybox(fill: color)[#title]]
