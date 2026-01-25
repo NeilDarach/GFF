@@ -121,7 +121,7 @@ async function recolor() {
             if (((prop["strand"] ?? "") != dict["strand"]) ||
                 ((prop["color"] ?? "") != dict["color"]) ||
                 ((prop["screen"] ?? "") != dict["screen"])) {
-    console.log(`Changing ${event.summary} extended properties to ${JOSN.stringify(dict)}`);
+    console.log(`Changing ${event.summary} extended properties to ${JSON.stringify(dict)}`);
     setExtendedProperties(event.id,dict); 
     await sleep(400);
 

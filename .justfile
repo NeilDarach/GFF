@@ -19,13 +19,17 @@ summaries:
     cd ./brochure ; typst compile filter-summary.typ
 
 publish-summaries:
+    #!/usr/bin/env bash
+    VER=$((1 + $(ssh root@goip.org.uk "ls -tr /opt/nginx/www/gff-2026-summaries-v*.pdf | tail -1 | sed -e 's/.*-v\(.\).pdf/\1/'")))
+    echo ${VER} > ./brochure/summary-version.txt
     just summaries
-    scp ./brochure/filter-summary.pdf "root@goip.org.uk:/opt/nginx/www/gff-2026-summaries-v$(cat ./brochure/summary-version.txt).pdf"
-    ssh root@goip.org.uk "ln -sf gff-2026-summaries-v$(cat ./brochure/summary-version.txt).pdf /opt/nginx/www/gff-2026-summaries.pdf"
-    echo "$(( 1 + $(cat ./brochure/summary-version.txt)))" > ./brochure/summary-version.txt
+    scp ./brochure/filter-summary.pdf "root@goip.org.uk:/opt/nginx/www/gff-2026-summaries-v${VER}.pdf"
+    ssh root@goip.org.uk "ln -sf gff-2026-summaries-v${VER}.pdf /opt/nginx/www/gff-2026-summaries.pdf"
 
 publish:
+    #!/usr/bin/env bash
+    VER=$((1 + $(ssh root@goip.org.uk "ls -tr /opt/nginx/www/gff-2026-v*.pdf | tail -1 | sed -e 's/.*-v\(.\).pdf/\1/'")))
+    echo ${VER} > ./brochure/version.txt
     just brochure
-    scp ./brochure/brochure.pdf "root@goip.org.uk:/opt/nginx/www/gff-2026-v$(cat ./brochure/version.txt).pdf"
-    ssh root@goip.org.uk "ln -sf gff-2026-v$(cat ./brochure/version.txt).pdf /opt/nginx/www/gff-2026.pdf"
-    echo "$(( 1 + $(cat ./brochure/version.txt)))" > ./brochure/version.txt
+    scp ./brochure/brochure.pdf "root@goip.org.uk:/opt/nginx/www/gff-2026-v${VER}.pdf"
+    ssh root@goip.org.uk "ln -sf gff-2026-v${VER}.pdf /opt/nginx/www/gff-2026.pdf"

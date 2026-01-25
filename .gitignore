@@ -9,3 +9,5 @@ node_modules
 target/
 brochure/posters/
 result
+version.txt
+summary-version.txt
