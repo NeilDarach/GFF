@@ -61,10 +61,13 @@
             if [[ ! -f "google-auth.json" ]]; then
               ${pkgs.sops}/bin/sops --extract '["gff-google-calendar-auth"]' --decrypt "${secrets}/secrets.yaml" > google-auth.json
             fi
-              export GFF_AUTH="./google-auth.json"
-              export GFF_FILTER_ID="$(${pkgs.sops}/bin/sops --extract '["gff-filter-id"]' --decrypt ${secrets}/secrets.yaml)"
-              export GFF_FULL_ID="$(${pkgs.sops}/bin/sops --extract '["gff-full-id"]' --decrypt ${secrets}/secrets.yaml)"
-              export GFF_CALLBACK="https://goip.org.uk/gff/change"
+            if [[ ! -d gff-fetch-summary/node_modules ]]; then
+              (cd gff-fetch-summary; npm install)
+            fi
+            export GFF_AUTH="$PWD/google-auth.json"
+            export GFF_FILTER_ID="$(${pkgs.sops}/bin/sops --extract '["gff-filter-id"]' --decrypt ${secrets}/secrets.yaml)"
+            export GFF_FULL_ID="$(${pkgs.sops}/bin/sops --extract '["gff-full-id"]' --decrypt ${secrets}/secrets.yaml)"
+            export GFF_CALLBACK="https://goip.org.uk/gff/change"
           '';
         };
       });
@@ -87,6 +90,16 @@
             type = lib.types.str;
             default = "";
             description = "A file containing environment variables to load";
+          };
+          publishSite = lib.mkOption {
+            type = lib.types.str;
+            default = "root@giop.org.uk:/opt/nginx/www";
+            description = "Where to send pdfs";
+          };
+          stateDir = lib.mkOption {
+            type = lib.types.str;
+            default = "/var/run/gff";
+            description = "Where to keep json files";
           };
         };
         config =
@@ -115,7 +128,33 @@
       };
 
       packages = forEachSupportedSystem ({ pkgs, makePkgs }: {
-        default = pkgs.callPackage ./calendar-access { };
+        scripts = pkgs.stdenv.mkDerivation {
+          pname = "gff-scripts";
+          version = "0.1.0";
+          src = ./.;
+          buildInputs = with pkgs; [ nodejs typst bash openssh ];
+          dontUnpack = true;
+          dontPatch = true;
+          dontConfigure = true;
+          dontBuild = true;
+
+          installPhase = ''
+            mkdir -p $out/bin $out/shared
+            cp $src/scripts/* $out/bin
+            cp $src/brochure/* $out/shared
+            cp $src/updateCalendar/filter-summary.js $out/bin
+          '';
+
+        };
+        gff-fetch-summary = pkgs.buildNpmPackage {
+          pname = "gff-fetch-summary";
+          version = "0.1.0";
+          src = ./gff-fetch-summary;
+          buildInputs = with pkgs; [ nodejs ];
+          npmDeps = pkgs.importNpmLock { npmRoot = ./gff-fetch-summary; };
+          npmConfigHook = pkgs.importNpmLock.npmConfigHook;
+        };
+        native = pkgs.callPackage ./calendar-access { };
         pi =
           (makePkgs "aarch64-unknown-linux-musl").callPackage ./calendar-access
           { };

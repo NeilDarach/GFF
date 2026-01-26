@@ -1,0 +1,17 @@
+{
+    "name": "gff-fetch-summary",
+    "version": "0.1.0",
+    "main": "dist/gff-fetch-summary.js",
+    "bin": {
+        "gff-fetch-summary": "dist/gff-fetch-summary.js"
+    },
+    "scripts": {
+        "build": "mkdir dist; cp gff-fetch-summary.js dist",
+        "start": "node dist/gff-fetch-summary.js"
+    },
+    "description": "Fetch json summary information from the GFF shared calendar",
+
+  "dependencies": {
+    "googleapis": "^105.0.0"
+  }
+}

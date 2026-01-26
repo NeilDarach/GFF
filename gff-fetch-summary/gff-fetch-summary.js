@@ -1,14 +1,16 @@
+#!/usr/bin/env node
+
 const fs = require('fs').promises;
 const path = require('path');
 const process = require('process');
 const {google} = require('googleapis');
 const serviceAccount = new google.auth.GoogleAuth ({
-    keyFile: "../google-auth.json",
+    keyFile: process.env.GFF_AUTH,
     scopes: [ 'https://www.googleapis.com/auth/calendar',
               'https://www.googleapis.com/auth/calendar.events'
             ], });
 
-const LIVE_CALENDAR = '70ff6ebc2f94e898b99fa265e71b4d8cd7f2087728d78e9e75f537813b678974@group.calendar.google.com';
+const LIVE_CALENDAR = process.env.GFF_FILTER_ID;
 google.options({ auth: serviceAccount });
 
 

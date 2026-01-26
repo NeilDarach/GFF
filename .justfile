@@ -15,7 +15,7 @@ brochure:
     cd brochure; typst compile summary.typ; typst compile brochure.typ
 
 summaries:
-    cd ./updateCalendar ; node filter-summary.js > ../brochure/filter-summary.json
+    cd ./gff-fetch-summary ; node gff-fetch-summary.js > ../brochure/filter-summary.json
     cd ./brochure ; typst compile filter-summary.typ
 
 publish-summaries:
