@@ -103,7 +103,7 @@
           };
         };
         config =
-          let gff = self.packages.${pkgs.stdenv.hostPlatform.system}.default;
+          let gff = self.packages.${pkgs.stdenv.hostPlatform.system}.native;
           in lib.mkIf config.gff.enable {
             environment.systemPackages = [ gff ];
             users.groups.gff = { };
