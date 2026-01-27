@@ -30,6 +30,18 @@ static CALLBACK_URL: LazyLock<String> = LazyLock::new(|| { var("GFF_CALLBACK").e
 * main_to_filter - HashMap<main_id,filter_id>
 */
 
+#[derive(Default,Serialize)]
+pub struct Summary {
+    pub start: String,
+    pub title: String,
+    pub strand: Option<String>,
+    pub duration: u16,
+    pub color: Option<String>,
+    pub id: Option<String>,
+    pub day: Option<String>,
+    pub attendees: Vec<String>,
+}
+
 #[derive(Default, Serialize)]
 pub struct Events {
     #[serde(skip_serializing)]
@@ -56,6 +68,10 @@ impl Events {
             uuid,
             ..Default::default()
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.main_events.is_empty()
     }
 
     pub async fn renew_watch(&mut self, period: u128) -> Result<(), Error> {
@@ -292,6 +308,52 @@ impl Events {
         self.delete_filtered_events().await?;
         println!("Finished scan");
         Ok(())
+    }
+
+
+    fn properties(&self,evt: &Event) -> HashMap<String,String> {
+        let mut result = HashMap::new();
+        if let Some(ext) = evt.extended_properties.as_ref() {
+        if let Some(shared) = ext.shared.as_ref() {
+        if let Some(id) = shared.get("sourceid") { result.insert("id".to_string(),id.to_string()); }
+        if let Some(screen) = shared.get("screen") { result.insert("screen".to_string(),screen.to_string()); }
+        if let Some(strand) = shared.get("strand") { result.insert("strand".to_string(),strand.to_string()); }
+        if let Some(color) = shared.get("color") { result.insert("color".to_string(),color.to_string()); }
+            }
+        }
+        return result;
+    }
+
+    pub async fn fetch_summary(&self) -> Result<HashMap<String,HashMap<String,Vec<Summary>>>,Error> {
+        let mut by_date = HashMap::new();
+        for (_key,evt) in &self.main_events {
+            if let Some(_desc) = &evt.description {
+            let start = &evt.start.as_ref().unwrap().date_time.unwrap();
+            let end = &evt.end.as_ref().unwrap().date_time.unwrap();
+                let duration = *end - start;
+
+            let date = start.to_string()[..10].to_string();
+                let time = start.to_string()[11..16].to_string();
+                let screen = &evt.location.as_ref().unwrap().to_string();
+                let properties = self.properties(evt);
+                
+
+            let by_screen = by_date.entry(date).or_insert(HashMap::new());
+                let entries = by_screen.entry(screen.clone()).or_insert(Vec::new());
+                let summary = Summary {
+                    start: time,
+                    title: evt.summary.as_ref().unwrap().to_string(),
+                    strand: properties.get("strand").cloned(),
+                    duration: duration.num_seconds() as u16,
+                    color: properties.get("color").cloned(),
+                id: None,
+                day: Some(start.format("%A").to_string()),
+                    attendees: people(&evt).split(" ").map(|e| e.to_string()).collect(),
+                };
+                entries.push(summary);
+            }
+        }
+        return Ok(by_date);
     }
 
     pub async fn update_filtered_events(&mut self) -> Result<(), Error> {
