@@ -12,6 +12,8 @@ use tokio::sync::Mutex;
 use tokio::{task, time};
 use yup_oauth2::parse_service_account_key;
 use std::env::var;
+use crate::calendar::Summary;
+use std::collections::HashMap;
 
 mod calendar;
 
@@ -43,6 +45,13 @@ async fn route(
             event_struct.scan_calendar().await.unwrap();
             event_struct.update_filtered_events().await.unwrap();
             let json = serde_json::to_string_pretty(&*event_struct).unwrap();
+            *response.body_mut() = Body::from(json);
+        }
+        (&Method::GET, "/summary") => {
+            let mut event_struct = state.lock().await;
+            if event_struct.is_empty() { let _ = event_struct.scan_calendar().await; }
+            let summary : HashMap<String,HashMap<String,Vec<Summary>>> = event_struct.fetch_summary().await.unwrap();
+            let json = serde_json::to_string_pretty(&summary).unwrap();
             *response.body_mut() = Body::from(json);
         }
         _ => {
