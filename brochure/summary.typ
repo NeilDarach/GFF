@@ -5,7 +5,7 @@ let pct(mins) = { (((100%-screenCol)/14)*((mins /60))) }
 let filmBox(body,start:"10:00",duration:30,color:blue,row:0,id:"")= {
     let (h,m) = start.split(":")
     let st = (int(h)*60)
-    let title = context { if (id == "" or query(label(id)).len() == 0) { 
+    let title = context { if (id == "" or id == none or query(label(id)).len() == 0) { 
     text(size:0.75em)[#body] } else {
     link(label(id))[#text(size:0.75em)[#body]]
     }}

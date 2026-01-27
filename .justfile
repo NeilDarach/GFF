@@ -15,12 +15,12 @@ brochure:
     cd brochure; typst compile summary.typ; typst compile brochure.typ
 
 summaries:
-    cd ./gff-fetch-summary ; node gff-fetch-summary.js > ../brochure/filter-summary.json
+    curl https://goip.org.uk/gff/summary > ./brochure/filter-summary.json
     cd ./brochure ; typst compile filter-summary.typ
 
 publish-summaries:
     #!/usr/bin/env bash
-    VER=$((1 + $(ssh root@goip.org.uk "ls -tr /opt/nginx/www/gff-2026-summaries-v*.pdf | tail -1 | sed -e 's/.*-v\(.\).pdf/\1/'")))
+    VER=$((1 + $(ssh root@goip.org.uk "ls -tr /opt/nginx/www/gff-2026-summaries-v?*.pdf | tail -1 | sed -e 's/.*-v\(.\+\).pdf/\1/'")))
     echo ${VER} > ./brochure/summary-version.txt
     just summaries
     scp ./brochure/filter-summary.pdf "root@goip.org.uk:/opt/nginx/www/gff-2026-summaries-v${VER}.pdf"
@@ -28,7 +28,7 @@ publish-summaries:
 
 publish:
     #!/usr/bin/env bash
-    VER=$((1 + $(ssh root@goip.org.uk "ls -tr /opt/nginx/www/gff-2026-v*.pdf | tail -1 | sed -e 's/.*-v\(.\).pdf/\1/'")))
+    VER=$((1 + $(ssh root@goip.org.uk "ls -tr /opt/nginx/www/gff-2026-v?*.pdf | tail -1 | sed -e 's/.*-v\(.\+\).pdf/\1/'")))
     echo ${VER} > ./brochure/version.txt
     just brochure
     scp ./brochure/brochure.pdf "root@goip.org.uk:/opt/nginx/www/gff-2026-v${VER}.pdf"

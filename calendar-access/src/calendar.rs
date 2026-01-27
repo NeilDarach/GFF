@@ -344,7 +344,7 @@ impl Events {
                     start: time,
                     title: evt.summary.as_ref().unwrap().to_string(),
                     strand: properties.get("strand").cloned(),
-                    duration: duration.num_seconds() as u16,
+                    duration: duration.num_minutes() as u16,
                     color: properties.get("color").cloned(),
                 id: None,
                 day: Some(start.format("%A").to_string()),
