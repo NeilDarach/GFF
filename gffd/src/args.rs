@@ -17,10 +17,10 @@ pub struct GlobalOptions {
 
     #[arg(long = "auth", short = 'a', default_value_t = ("").to_string())]
     pub auth_file: String,
-        #[arg(long = "main", short = 'm', default_value_t = ("").to_string())]
-       pub  calendar_main_id: String,
-        #[arg(long = "fiter", short = 'f', default_value_t = ("").to_string())]
-       pub  calendar_filter_id: String,
+    #[arg(long = "main", short = 'm', default_value_t = ("").to_string())]
+    pub calendar_main_id: String,
+    #[arg(long = "fiter", short = 'f', default_value_t = ("").to_string())]
+    pub calendar_filter_id: String,
 }
 
 #[derive(Debug, Subcommand, Clone)]

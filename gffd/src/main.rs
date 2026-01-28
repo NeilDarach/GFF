@@ -1,7 +1,7 @@
 mod args;
 mod config;
 use crate::args::{Args, GlobalOptions, Subcommands};
-use crate::config::{Config, ServerConfig};
+use crate::config::Config;
 
 fn main() {
     let args = Args::read_args();
@@ -11,23 +11,25 @@ fn main() {
         ref calendar_main_id,
         ref calendar_filter_id,
     } = args.options;
-    let mut config = Config::read_config_file(directory).expect(&format!(
-        "Could not load the config file in {}",
-        &directory[..]
-    ));
+    let mut config = match Config::read_config_file(directory) {
+        Err(e) => {
+            println!("gffd: {}", e);
+            return;
+        }
+        Ok(c) => c,
+    };
 
-    if auth_file != "" {
-        config.calendar_auth_file = auth_file.clone();
+    if !auth_file.is_empty() {
+        config.set_auth_file(auth_file);
     }
-    if calendar_main_id != "" {
+    if !calendar_main_id.is_empty() {
         config.calendar_main_id = calendar_main_id.clone();
     }
-    if calendar_filter_id != "" {
+    if !calendar_filter_id.is_empty() {
         config.calendar_filter_id = calendar_filter_id.clone();
     }
-    println!("args are {:?}", args);
     if let Subcommands::Serve { port, callback_url } = args.subcommand {
-        if callback_url != "".to_string() {
+        if !callback_url.is_empty() {
             config.server_options.callback_url = callback_url;
         }
         if port >= 0 {

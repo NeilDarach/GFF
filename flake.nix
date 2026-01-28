@@ -54,6 +54,8 @@
             just
             (rust-bin.stable.latest.default.override {
               targets = [ "x86_64-unknown-linux-musl" "aarch64-apple-darwin" ];
+              extensions = [ "rust-src" "rust-analyzer" ];
+
             })
           ];
           shellHook = ''
