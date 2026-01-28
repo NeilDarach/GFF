@@ -17,19 +17,19 @@ pub struct GlobalOptions {
 
     #[arg(long = "auth", short = 'a', default_value_t = ("").to_string())]
     pub auth_file: String,
+        #[arg(long = "main", short = 'm', default_value_t = ("").to_string())]
+       pub  calendar_main_id: String,
+        #[arg(long = "fiter", short = 'f', default_value_t = ("").to_string())]
+       pub  calendar_filter_id: String,
 }
 
 #[derive(Debug, Subcommand, Clone)]
 pub enum Subcommands {
     Serve {
-        #[arg(long = "port", short = 'p', default_value_t = 3020)]
-        port: u16,
+        #[arg(long = "port", short = 'p', default_value_t = -1)]
+        port: i16,
         #[arg(long = "url", short = 'u', default_value_t = ("").to_string())]
         callback_url: String,
-        #[arg(long = "main", short = 'm', default_value_t = ("").to_string())]
-        calendar_main_id: String,
-        #[arg(long = "fiter", short = 'f', default_value_t = ("").to_string())]
-        calendar_filter_id: String,
     },
     List {},
 }
