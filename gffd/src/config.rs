@@ -1,4 +1,5 @@
 use serde::{Deserialize, Deserializer, Serialize};
+use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::fs;
 use std::path::Path;
@@ -47,9 +48,26 @@ pub struct Config {
     pub calendar_filter_id: String,
     #[serde(deserialize_with = "deserialize_env_string")]
     pub calendar_auth_file: String,
+    #[serde(deserialize_with = "deserialize_env_string")]
+    pub cookie: String,
     pub server_options: ServerConfig,
+    pub screens: HashMap<String, ScreenConfig>,
+    pub strands: HashMap<String, StrandConfig>,
     #[serde(skip)]
     directory: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct StrandConfig {
+    pub id: u16,
+    pub color: String,
+    pub priority: u8,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ScreenConfig {
+    pub id: u16,
+    pub color: u8,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -83,7 +101,10 @@ impl Default for Config {
             calendar_filter_id: "".to_string(),
             calendar_auth_file: "google_auth.json".to_string(),
             server_options: ServerConfig::default(),
+            screens: HashMap::default(),
+            strands: HashMap::default(),
             directory: ".".to_string(),
+            cookie: "".to_string(),
         }
     }
 }

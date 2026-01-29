@@ -1,7 +1,9 @@
 mod args;
 mod config;
+mod films;
 use crate::args::{Args, GlobalOptions, Subcommands};
 use crate::config::Config;
+use crate::films::{FestivalEvent, fetch_ids, load_ids};
 
 fn main() {
     let args = Args::read_args();
@@ -28,13 +30,19 @@ fn main() {
     if !calendar_filter_id.is_empty() {
         config.calendar_filter_id = calendar_filter_id.clone();
     }
-    if let Subcommands::Serve { port, callback_url } = args.subcommand {
-        if !callback_url.is_empty() {
-            config.server_options.callback_url = callback_url;
+    match args.subcommand {
+        Subcommands::Serve { port, callback_url } => {
+            if !callback_url.is_empty() {
+                config.server_options.callback_url = callback_url;
+            }
+            if port >= 0 {
+                config.server_options.port = port as u16;
+            }
         }
-        if port >= 0 {
-            config.server_options.port = port as u16;
+        Subcommands::List {} => {}
+        Subcommands::Ids {} => {
+            println!("{:?}", load_ids(&fetch_ids()).unwrap());
         }
-    }
+    };
     println!("Config is {:?}", config);
 }

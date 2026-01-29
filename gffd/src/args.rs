@@ -31,6 +31,7 @@ pub enum Subcommands {
         #[arg(long = "url", short = 'u', default_value_t = ("").to_string())]
         callback_url: String,
     },
+    Ids {},
     List {},
 }
 
