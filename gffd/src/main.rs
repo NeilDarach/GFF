@@ -41,7 +41,13 @@ fn main() {
         }
         Subcommands::List {} => {}
         Subcommands::Ids {} => {
-            println!("{:?}", load_ids(&fetch_ids()).unwrap());
+            match fetch_ids() {
+                Err(e) => println!("Failed to fetch film ids - {}", e),
+                Ok(ids) => match load_ids(&ids) {
+                    Err(e) => println!("Failed to parse the film ids - {}", e),
+                    Ok(map) => println!("{:?}", map),
+                },
+            };
         }
     };
     println!("Config is {:?}", config);

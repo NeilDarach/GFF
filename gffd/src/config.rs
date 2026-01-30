@@ -53,6 +53,7 @@ pub struct Config {
     pub server_options: ServerConfig,
     pub screens: HashMap<String, ScreenConfig>,
     pub strands: HashMap<String, StrandConfig>,
+    pub names: HashMap<String, String>,
     #[serde(skip)]
     directory: String,
 }
@@ -105,6 +106,7 @@ impl Default for Config {
             strands: HashMap::default(),
             directory: ".".to_string(),
             cookie: "".to_string(),
+            names: HashMap::default(),
         }
     }
 }
