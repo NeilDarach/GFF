@@ -3,6 +3,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
+use std::sync::LazyLock;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -82,35 +83,43 @@ pub struct FestivalEvent {
 
 #[derive(Deserialize, Debug)]
 struct Screening {
-    id: String,
+    #[serde(deserialize_with = "deserialize_str_as_u32")]
+    id: u32,
     #[serde(default)]
     movie_id: u32,
     #[serde(deserialize_with = "deserialize_datetime")]
     time: chrono::NaiveDateTime,
     #[serde(rename = "screenId")]
-    screen_id: String,
+    #[serde(deserialize_with = "deserialize_str_as_u32")]
+    screen_id: u32,
     #[serde(rename = "showingBadgeIds")]
-    showing_badge_ids: Vec<String>,
+    #[serde(deserialize_with = "deserialize_v_of_str_as_u32")]
+    showing_badge_ids: Vec<u32>,
 }
 
 #[derive(Deserialize, Debug)]
 struct Movie {
-    id: String,
+    #[serde(deserialize_with = "deserialize_str_as_u32")]
+    id: u32,
     name: String,
     #[serde(rename = "posterImage")]
     poster_image: String,
+    #[serde(deserialize_with = "deserialize_markup")]
     synopsis: String,
     #[serde(default)]
-    staring: String,
+    #[serde(deserialize_with = "deserialize_csv")]
+    staring: Vec<String>,
     #[serde(default, rename = "directedBy")]
     directed_by: String,
     duration: u32,
-    #[serde(default, rename = "all_genres")]
-    all_genres: String,
+    #[serde(deserialize_with = "deserialize_csv")]
+    #[serde(default, rename = "allGenres")]
+    all_genres: Vec<String>,
     #[serde(default)]
     rating: String,
     #[serde(default, rename = "ratingReason")]
-    rating_reason: Option<String>,
+    #[serde(deserialize_with = "deserialize_none_as_vec")]
+    rating_reason: Vec<String>,
 }
 
 impl FestivalEvent {
@@ -142,24 +151,15 @@ pub fn fetch_screenings(id: u32) -> Result<Vec<Screening>, FilmError> {
         r#"{{ "variables": {{ "movieId": "{}" }}, "query": "query ($movieId: ID) {{ showingsForDate( movieId: $movieId ) {{ data {{ id time screenId showingBadgeIds }}  }} }}" }}"#,
         id,
     );
-    let string = fetch_from_gft(&graphql)?;
-    let value: Value = serde_json::from_str(&string)
+    deserialize_screenings(id, &fetch_from_gft(&graphql)?)
+}
+pub fn deserialize_screenings(id: u32, json: &str) -> Result<Vec<Screening>, FilmError> {
+    let value: Value = serde_json::from_str(json)
         .map_err(|_e| FilmError::BadValueType("Decoding screening string".to_string()))?;
     let data = value
-        .get("data")
-        .ok_or(FilmError::BadValueType(
-            "screening does not contain data".to_string(),
-        ))?
-        .get("showingsForDate")
-        .ok_or(FilmError::BadValueType(
-            "screening does not contain showingForDate".to_string(),
-        ))?
-        .get("data")
-        .ok_or(FilmError::BadValueType(
-            "screening does not contain second data".to_string(),
-        ))?
-        .as_array()
-        .ok_or(FilmError::BadValueType("data is not an array".to_string()))?;
+        .pointer("/data/showingsForDate/data")
+        .and_then(|v| v.as_array())
+        .ok_or(FilmError::BadValueType("no internal data".to_string()))?;
     let mut result = vec![];
     for each in data {
         let mut screening: Screening = serde_json::from_value(each.clone())
@@ -171,7 +171,7 @@ pub fn fetch_screenings(id: u32) -> Result<Vec<Screening>, FilmError> {
 }
 
 pub fn fetch_ids() -> Result<String, FilmError> {
-    let graphql = r#"{"variables":{"type":"now-playing-and-coming-soon","orderBy":"name", "descending":false,"limit":255,"titleClassIds":[196,211,229]},"query":"query ($limit: Int, $orderBy: String, $descending: Boolean, $titleClassIds: [ID]) { movies( limit: $limit orderBy: $orderBy descending: $descending titleClassIds: $titleClassIds ) { data { id name } } } "}"#;
+    let graphql = r#"{"variables":{"titleClassIds":[196,211,229]},"query":"query ($titleClassIds: [ID]) { movies( limit: 255 titleClassIds: $titleClassIds ) { data { id name } } } "}"#;
     fetch_from_gft(&graphql)
 }
 
@@ -180,29 +180,14 @@ pub fn fetch_film(id: u32) -> Result<Movie, FilmError> {
         r#"{{ "variables": {{ "movieId": "{}" }}, "query": "query ($movieId: ID) {{ showingsForDate( movieId: $movieId ) {{ data {{ movie {{ id name posterImage synopsis starring directedBy duration allGenres rating ratingReason  }}  }}  }} }} " }} "#,
         id,
     );
-    let string = fetch_from_gft(&graphql)?;
-    let value: Value = serde_json::from_str(&string)
+    deserialize_film(&fetch_from_gft(&graphql)?)
+}
+pub fn deserialize_film(json: &str) -> Result<Movie, FilmError> {
+    let value: Value = serde_json::from_str(json)
         .map_err(|_e| FilmError::BadValueType("Decoding movie string".to_string()))?;
-    let data = value
-        .get("data")
-        .ok_or(FilmError::BadValueType(
-            "movie does not contain data".to_string(),
-        ))?
-        .get("showingsForDate")
-        .ok_or(FilmError::BadValueType(
-            "movie does not contain showingForDate".to_string(),
-        ))?
-        .get("data")
-        .ok_or(FilmError::BadValueType(
-            "movie does not contain second data".to_string(),
-        ))?
-        .as_array()
-        .ok_or(FilmError::BadValueType("data is not an array".to_string()))?;
-    let movie_val: &Value = data
-        .first()
-        .ok_or(FilmError::BadValueType("not a valid movie (i)".to_string()))?
-        .get("movie")
-        .ok_or(FilmError::BadValueType("no embedded movie".to_string()))?;
+    let movie_val = value
+        .pointer("/data/showingsForDate/data/0/movie")
+        .ok_or(FilmError::BadValueType("no internal data".to_string()))?;
     let movie: Movie = serde_json::from_value(movie_val.clone())
         .map_err(|e| FilmError::BadValueType(format!("not a valid movie - {:?}", e)))?;
     Ok(movie)
@@ -211,27 +196,109 @@ pub fn fetch_film(id: u32) -> Result<Movie, FilmError> {
 pub fn load_ids(data: &str) -> Result<FilmMap, FilmError> {
     let full: Value = serde_json::from_str(data).unwrap();
     let list = full
-        .get("data")
-        .ok_or(FilmError::MissingField("data".to_string()))?
-        .get("movies")
-        .ok_or(FilmError::MissingField("movies".to_string()))?
-        .get("data")
-        .ok_or(FilmError::MissingField("data".to_string()))?;
+        .pointer("/data/movies/data")
+        .and_then(|v| v.as_array())
+        .ok_or(FilmError::BadValueType("no data array".to_string()))?;
     let map = list
-        .as_array()
-        .ok_or(FilmError::BadValueType("array".to_string()))?
         .iter()
         .filter_map(|e| e.as_object())
         .fold(FilmMap::default(), |mut m, e| {
-            let id = e.get("id").unwrap();
-            let name = e.get("name").unwrap();
-            let id = id.as_str().unwrap();
-            let name = name.as_str().unwrap();
-            let id = id.parse().unwrap();
-            m.add(name, id);
+            let id = e
+                .get("id")
+                .and_then(|v| v.as_str())
+                .and_then(|v| v.parse().ok());
+            let name = e.get("name").and_then(|v| v.as_str());
+            m.add(name.unwrap(), id.unwrap());
             m
         });
     Ok(map)
+}
+fn deserialize_markup<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let source = String::deserialize(deserializer)?;
+    replace_regex(&source).map_err(serde::de::Error::custom)
+}
+
+pub fn replace_regex(source: &str) -> Result<String, FilmError> {
+    use regex::Regex;
+    static PATTERNS: LazyLock<Vec<(Regex, &str)>> = LazyLock::new(|| {
+        [
+            (r"------*", "----"),
+            (r"<a [^>]+>(?<match>[^<]+)</a>", "($match)"),
+            (r"</?style>", ""),
+            (r"</?font[^>]*>", ""),
+            (r"</?[iI]/?>", "_"),
+            (r"<[bB]>(?<match>[^<]*)</[bB]>", "#strong[$match]"),
+            //(r"<[iI]>(?<match>[^<]*)</[iI]>", "#emph[$match]"),
+            (r"</?[^>]+/?>", ""),
+            (r"\$", r"\$"),
+            (r"\*", r"\*"),
+        ]
+        .iter()
+        .map(|(r, m)| (Regex::new(r).unwrap(), *m))
+        .collect()
+    });
+    Ok(PATTERNS.iter().fold(source.to_string(), |st, re| {
+        re.0.replace_all(&st, re.1).to_string()
+    }))
+}
+
+fn deserialize_csv<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let vec = String::deserialize(deserializer)?
+        .split(",")
+        .map(|e| e.trim().to_owned())
+        .collect();
+    Ok(vec)
+}
+fn deserialize_none_as_vec<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let opt: Option<String> = Option::deserialize(deserializer)?;
+    if opt.is_none() {
+        return Ok(vec![]);
+    }
+
+    let result = opt
+        .unwrap()
+        .split(",")
+        .map(|e| e.trim().to_owned())
+        .collect();
+    Ok(result)
+}
+fn deserialize_none_as_str<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    match Option::deserialize(deserializer)? {
+        Some(s) => Ok(s),
+        None => Ok("".to_string()),
+    }
+}
+fn deserialize_str_as_u32<'de, D>(deserializer: D) -> Result<u32, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let string: String = String::deserialize(deserializer)?;
+    string.parse().map_err(serde::de::Error::custom)
+}
+fn deserialize_v_of_str_as_u32<'de, D>(deserializer: D) -> Result<Vec<u32>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let vec: Vec<String> = Vec::deserialize(deserializer)?;
+    let mut result = vec![];
+    for each in vec {
+        if let Ok(elem) = each.parse() {
+            result.push(elem)
+        }
+    }
+    Ok(result)
 }
 
 fn deserialize_date<'de, D>(deserializer: D) -> Result<NaiveDate, D::Error>
@@ -288,9 +355,24 @@ mod tests {
         assert!(false);
     }
     #[test]
+    fn test_replace_regex() {
+        assert_eq!(
+            "with _italics_ test".to_string(),
+            replace_regex("with <i>italics</i> test").unwrap()
+        );
+        assert_eq!(
+            "with #strong[bold] test \\* and \\$".to_string(),
+            replace_regex("with <b>bold</B> test * and $").unwrap()
+        );
+    }
+
+    #[test]
     fn test_fetch_film() {
-        println!("{:?}", &fetch_film(33606));
-        println!("{:?}", &fetch_screenings(33606));
+        let film = r#"{"data":{"showingsForDate":{"data":[{"movie":{"id":"33606","name":"A Fox Under a Pink Moon","posterImage":"bwotd0lk7ox5bsiyvyr96yw6ub9h","synopsis":"An intimate self-portrait of teenage artist \u003cb\u003eSoraya\u003c/b\u003e, an Afghan refugee, as she tries to travel from Iran to reach her mother in Austria. A raw and intelligent collaborative work between \u003cb\u003eSoraya\u003c/b\u003e – who shoots footage on her phone – and documentarian \u003cb\u003eMehrdad Oskouei\u003c/b\u003e (\u003ci\u003eStarless Dreams\u003c/i\u003e), it was shot over five years as she struggled to make it to Europe. In addition to video diaries charting \u003cb\u003eSoraya’s\u003c/b\u003e progress, the film features animation based on her own artwork and muses on themes including exile and domestic violence, while retaining a sense of her optimistic defiance in the face of life’s injustices.","starring":"","directedBy":"Mehrdad Oskouei","duration":76,"allGenres":"Documentary,Drama,Animation","rating":"N/C 15+","ratingReason":null}},{"movie":{"id":"33606","name":"A Fox Under a Pink Moon","posterImage":"bwotd0lk7ox5bsiyvyr96yw6ub9h","synopsis":"An intimate self-portrait of teenage artist \u003cb\u003eSoraya\u003c/b\u003e, an Afghan refugee, as she tries to travel from Iran to reach her mother in Austria. A raw and intelligent collaborative work between \u003cb\u003eSoraya\u003c/b\u003e – who shoots footage on her phone – and documentarian \u003cb\u003eMehrdad Oskouei\u003c/b\u003e (\u003ci\u003eStarless Dreams\u003c/i\u003e), it was shot over five years as she struggled to make it to Europe. In addition to video diaries charting \u003cb\u003eSoraya’s\u003c/b\u003e progress, the film features animation based on her own artwork and muses on themes including exile and domestic violence, while retaining a sense of her optimistic defiance in the face of life’s injustices.","starring":"","directedBy":"Mehrdad Oskouei","duration":76,"allGenres":"Documentary,Drama,Animation","rating":"N/C 15+","ratingReason":null}}],"resultVersion":"2787629567"}}}"#;
+        let screenings = r#"{"data":{"showingsForDate":{"data":[{"id":"388329","time":"2026-02-26T21:00:00Z","screenId":"175","showingBadgeIds":["827","864","852","549","560","562"]},{"id":"388644","time":"2026-02-27T15:00:00Z","screenId":"175","showingBadgeIds":["827","864","852","549","560","562"]}],"resultVersion":"2222388313"}}}"#;
+
+        println!("{:?}", &deserialize_film(film));
+        println!("{:?}", &deserialize_screenings(33606, screenings));
         assert!(false);
     }
 
