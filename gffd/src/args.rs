@@ -32,6 +32,8 @@ pub enum Subcommands {
         callback_url: String,
     },
     Ids {},
+    FetchScreenings {},
+    ShowConfig {},
     List {},
 }
 

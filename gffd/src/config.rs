@@ -19,6 +19,9 @@ pub enum ConfigError {
     // Missing config.json
     #[error("No config.json in {0}")]
     MissingConfig(String),
+    // Missing state_directory
+    #[error("state_directory is set to {0} but is not avaiable")]
+    MissingStateDir(String),
     // Invalid json
     #[error("{0} does not contain a valid config - {1}")]
     InvalidConfig(String, String),
@@ -50,6 +53,8 @@ pub struct Config {
     pub calendar_auth_file: String,
     #[serde(deserialize_with = "deserialize_env_string")]
     pub cookie: String,
+    #[serde(default)]
+    pub state_directory: String,
     pub server_options: ServerConfig,
     pub screens: HashMap<String, ScreenConfig>,
     pub strands: HashMap<String, StrandConfig>,
@@ -58,17 +63,33 @@ pub struct Config {
     directory: String,
 }
 
-#[derive(Clone, Serialize, Deserialize, Default)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct StrandConfig {
     pub id: u32,
-    pub color: String,
+    pub colour: String,
     pub priority: u32,
 }
 
-#[derive(Clone, Default, Serialize, Deserialize)]
+impl Default for StrandConfig {
+    fn default() -> Self {
+        Self {
+            id: 0,
+            colour: "000000".to_string(),
+            priority: 99,
+        }
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ScreenConfig {
     pub id: u32,
-    pub color: u32,
+    pub colour: u32,
+}
+
+impl Default for ScreenConfig {
+    fn default() -> Self {
+        Self { id: 0, colour: 7 }
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -101,6 +122,7 @@ impl Default for Config {
             calendar_main_id: "".to_string(),
             calendar_filter_id: "".to_string(),
             calendar_auth_file: "google_auth.json".to_string(),
+            state_directory: "".to_string(),
             server_options: ServerConfig::default(),
             screens: HashMap::default(),
             strands: HashMap::default(),
@@ -146,6 +168,24 @@ impl Config {
                     .to_str()
                     .ok_or(ConfigError::NoConfigDir(directory.clone()))?
                     .to_owned();
+                if !cfg.screens.contains_key("Unknown") {
+                    cfg.screens
+                        .insert("Unknown".to_string(), ScreenConfig::default());
+                }
+                if !cfg.strands.contains_key("None") {
+                    cfg.strands
+                        .insert("None".to_string(), StrandConfig::default());
+                }
+                if cfg.state_directory.is_empty() {
+                    cfg.state_directory = cfg.directory.clone();
+                }
+
+                match fs::exists(&cfg.state_directory) {
+                    Ok(true) => {}
+                    _ => {
+                        return Err(ConfigError::MissingStateDir(cfg.state_directory.clone()));
+                    }
+                }
                 Ok(cfg)
             }
             Ok(false) => {

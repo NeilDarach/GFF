@@ -1,0 +1,108 @@
+{
+  "calendar_main_id": "!env GFF_FULL_ID",
+  "calendar_filter_id": "!env GFF_FILTER_ID",
+  "calendar_auth_file": "!env GFF_AUTH",
+  "cookie": "!env COOKIE",
+  "server_options": {
+    "port": 3020,
+    "callback_url": "https://gff.darach.org.uk"
+  },
+  "screens": {
+    "GFT 1": {
+      "id": 171,
+      "colour": 1
+    },
+    "GFT 2": {
+      "id": 172,
+      "colour": 2
+    },
+    "GFT 3": {
+      "id": 173,
+      "colour": 3
+    },
+    "Odeon 10": {
+      "id": 469,
+      "colour": 4
+    },
+    "Odeon 11": {
+      "id": 470,
+      "colour": 5
+    },
+    "Odeon 12": {
+      "id": 473,
+      "colour": 6
+    },
+    "Pyramid": {
+      "id": 471,
+      "colour": 6
+    },
+    "PWYC": {
+      "id": 472,
+      "colour": 6
+    },
+    "Special": {
+      "id": 474,
+      "colour": 6
+    },
+    "Unknown": {
+      "id": 0,
+      "colour": 7
+    }
+  },
+  "strands": {
+    "Gala": {
+      "id": 858,
+      "colour": "f2c170",
+      "priority": 1
+    },
+    "Country Focus": {
+      "id": 855,
+      "colour": "00997e",
+      "priority": 2
+    },
+    "FrightFest": {
+      "id": 857,
+      "colour": "946c0c",
+      "priority": 3
+    },
+    "Marylin-Monroe 100": {
+      "id": 1600,
+      "colour": "344798",
+      "priority": 4
+    },
+    "Truth to Power": {
+      "id": 1591,
+      "colour": "d9cdcc",
+      "priority": 5
+    },
+    "Official Selection": {
+      "id": 852,
+      "colour": "6596d0",
+      "priority": 6
+    },
+    "Audience Award": {
+      "id": 854,
+      "colour": "a30053",
+      "priority": 7
+    },
+    "Special Event": {
+      "id": 583,
+      "colour": "bc0e77",
+      "priority": 8
+    },
+    "Take 2": {
+      "id": 852,
+      "colour": "f1001c",
+      "priority": 9
+    },
+    "None": {
+      "id": 0,
+      "colour": "000000",
+      "priority": 99
+    }
+  },
+  "names": {
+    "Patrick": "Pt",
+    "Pam": "Pm"
+  }
+}

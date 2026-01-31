@@ -3,7 +3,7 @@ mod config;
 mod films;
 use crate::args::{Args, GlobalOptions, Subcommands};
 use crate::config::Config;
-use crate::films::{FestivalEvent, fetch_ids, load_ids};
+use crate::films::{FestivalEvent, fetch_ids, id_map, load_ids};
 
 fn main() {
     let args = Args::read_args();
@@ -39,16 +39,14 @@ fn main() {
                 config.server_options.port = port as u16;
             }
         }
+        Subcommands::ShowConfig {} => {
+            println!("{:?}", &config);
+        }
+
+        Subcommands::FetchScreenings {} => {}
         Subcommands::List {} => {}
         Subcommands::Ids {} => {
-            match fetch_ids() {
-                Err(e) => println!("Failed to fetch film ids - {}", e),
-                Ok(ids) => match load_ids(&ids) {
-                    Err(e) => println!("Failed to parse the film ids - {}", e),
-                    Ok(map) => println!("{:?}", map),
-                },
-            };
+            println!("{:?}", id_map(&config));
         }
     };
-    println!("Config is {:?}", config);
 }

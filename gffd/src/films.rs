@@ -4,6 +4,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
+use std::fs;
 use std::sync::LazyLock;
 use thiserror::Error;
 
@@ -24,6 +25,12 @@ pub enum FilmError {
     // Error connecting to the GFT web server
     #[error("Error connecting to the web server - {0}")]
     WebError(String),
+    // Error reading from the disk
+    #[error("Error reading {0} from disk")]
+    ReadError(String),
+    // Error writing to the disk
+    #[error("Error writing {0} to disk")]
+    WriteError(String),
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -131,6 +138,16 @@ struct Movie {
 
 impl FestivalEvent {
     pub fn fetch_from_gft(cfg: &Config, movie_id: u32) -> Result<Vec<Self>, FilmError> {
+        let cache_file = format!("{}/screenings/{}.json", &cfg.state_directory, movie_id);
+        if let Ok(true) = fs::exists(&cache_file) {
+            let bytes =
+                fs::read(&cache_file).map_err(|_| FilmError::ReadError(cache_file.to_string()))?;
+
+            println!("Returning cached");
+            return serde_json::from_slice(&bytes[..])
+                .map_err(|_e| FilmError::ReadError(cache_file.clone()));
+        };
+        println!("Reading from web");
         let screenings = fetch_screenings(movie_id)?;
         let mut result = vec![];
         for screening in screenings {
@@ -145,11 +162,11 @@ impl FestivalEvent {
                 title: screening.movie.name,
                 strand: strand_name,
                 strand_id: strand.id,
-                strand_colour: strand.color,
+                strand_colour: strand.colour,
                 strand_priority: strand.priority,
                 screen: screen_name,
                 screen_id: screen.id,
-                screen_colour: screen.color,
+                screen_colour: screen.colour,
                 attendees: vec![],
                 synopsis: screening.movie.synopsis,
                 staring: screening.movie.staring,
@@ -160,6 +177,12 @@ impl FestivalEvent {
                 poster: screening.movie.poster_image,
             });
         }
+        fs::write(
+            &cache_file,
+            serde_json::to_string_pretty(&result)
+                .map_err(|_| FilmError::WriteError(cache_file.clone()))?,
+        )
+        .map_err(|_| FilmError::WriteError(cache_file.clone()))?;
         Ok(result)
     }
 }
@@ -222,6 +245,26 @@ pub fn deserialize_film(json: &str) -> Result<Movie, FilmError> {
     Ok(movie)
 }
 
+pub fn id_map(cfg: &Config) -> Result<FilmMap, FilmError> {
+    let cache_file = format!("{}/ids.json", &cfg.state_directory);
+    if let Ok(true) = fs::exists(&cache_file) {
+        let bytes =
+            fs::read(&cache_file).map_err(|_| FilmError::ReadError(cache_file.to_string()))?;
+
+        println!("Returning cached");
+        return serde_json::from_slice(&bytes[..])
+            .map_err(|_e| FilmError::ReadError(cache_file.clone()));
+    };
+
+    let map = load_ids(&fetch_ids()?)?;
+    fs::write(
+        &cache_file,
+        serde_json::to_string_pretty(&map)
+            .map_err(|_| FilmError::WriteError(cache_file.clone()))?,
+    )
+    .map_err(|_| FilmError::WriteError(cache_file.clone()))?;
+    Ok(map)
+}
 pub fn load_ids(data: &str) -> Result<FilmMap, FilmError> {
     let full: Value = serde_json::from_str(data).unwrap();
     let list = full
@@ -398,18 +441,20 @@ mod tests {
     #[test]
     fn test_fetch_from_gft() {
         let mut cfg = Config::default();
+        cfg.state_directory = "/tmp".to_string();
         cfg.screens.insert(
             "GFT 1".to_string(),
-            crate::config::ScreenConfig { id: 175, color: 1 },
+            crate::config::ScreenConfig { id: 175, colour: 1 },
         );
         cfg.strands.insert(
             "Official Selection".to_string(),
             crate::config::StrandConfig {
                 id: 852,
-                color: "bc0e77".to_string(),
+                colour: "bc0e77".to_string(),
                 priority: 2,
             },
         );
+        println!("{:?}", FestivalEvent::fetch_from_gft(&cfg, 33606));
         println!("{:?}", FestivalEvent::fetch_from_gft(&cfg, 33606));
         assert!(false);
     }
