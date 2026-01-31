@@ -16,9 +16,6 @@ pub enum FilmError {
     // Bad time format
     #[error("Unable to parse {0} as a time")]
     BadTime(String),
-    // Missing field decoding unstructured json
-    #[error("Expected to find the field {0} in the input")]
-    MissingField(String),
     // Type error decoding unstructured json
     #[error("Expected to convert a value to {0} in the input")]
     BadValueType(String),
@@ -35,8 +32,8 @@ pub enum FilmError {
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct FilmMap {
-    id_to_film: HashMap<u32, String>,
-    film_to_id: HashMap<String, u32>,
+    pub id_to_film: HashMap<u32, String>,
+    pub film_to_id: HashMap<String, u32>,
 }
 
 impl FilmMap {
@@ -96,70 +93,99 @@ pub struct FestivalEvent {
 
 #[derive(Deserialize, Debug)]
 struct Screening {
-    #[serde(deserialize_with = "deserialize_str_as_u32")]
-    id: u32,
-    #[serde(default)]
-    movie_id: u32,
-    #[serde(deserialize_with = "deserialize_datetime")]
-    time: chrono::NaiveDateTime,
+    id: String,
+    movie_id: Option<u32>,
+    time: String,
     #[serde(rename = "screenId")]
-    #[serde(deserialize_with = "deserialize_str_as_u32")]
-    screen_id: u32,
+    screen_id: String,
     #[serde(rename = "showingBadgeIds")]
-    #[serde(deserialize_with = "deserialize_v_of_str_as_u32")]
-    showing_badge_ids: Vec<u32>,
+    showing_badge_ids: Vec<String>,
     movie: Movie,
 }
 
 #[derive(Deserialize, Debug)]
 struct Movie {
-    #[serde(deserialize_with = "deserialize_str_as_u32")]
-    id: u32,
+    id: String,
     name: String,
     #[serde(rename = "posterImage")]
-    poster_image: String,
-    #[serde(deserialize_with = "deserialize_markup")]
+    poster_image: Option<String>,
     synopsis: String,
     #[serde(default)]
-    #[serde(deserialize_with = "deserialize_csv")]
-    staring: Vec<String>,
+    staring: Option<String>,
     #[serde(default, rename = "directedBy")]
-    directed_by: String,
+    directed_by: Option<String>,
     duration: u32,
-    #[serde(deserialize_with = "deserialize_csv")]
     #[serde(default, rename = "allGenres")]
-    all_genres: Vec<String>,
+    all_genres: Option<String>,
     #[serde(default)]
-    rating: String,
+    rating: Option<String>,
     #[serde(default, rename = "ratingReason")]
-    #[serde(deserialize_with = "deserialize_none_as_vec")]
-    rating_reason: Vec<String>,
+    rating_reason: Option<String>,
 }
 
 impl FestivalEvent {
+    fn csv(input: &str) -> Vec<String> {
+        input.split(",").map(|e| e.trim().to_string()).collect()
+    }
+    fn markup(source: &str) -> Result<String, FilmError> {
+        use regex::Regex;
+        static PATTERNS: LazyLock<Vec<(Regex, &str)>> = LazyLock::new(|| {
+            [
+                (r"------*", "----"),
+                (r"<a [^>]+>(?<match>[^<]+)</a>", "($match)"),
+                (r"</?style>", ""),
+                (r"</?font[^>]*>", ""),
+                (r"</?[iI]/?>", "_"),
+                (r"<[bB]>(?<match>[^<]*)</[bB]>", "#strong[$match]"),
+                //(r"<[iI]>(?<match>[^<]*)</[iI]>", "#emph[$match]"),
+                (r"</?[^>]+/?>", ""),
+                (r"\$", r"\$"),
+                (r"\*", r"\*"),
+            ]
+            .iter()
+            .map(|(r, m)| (Regex::new(r).unwrap(), *m))
+            .collect()
+        });
+        Ok(PATTERNS.iter().fold(source.to_string(), |st, re| {
+            re.0.replace_all(&st, re.1).to_string()
+        }))
+    }
     pub fn fetch_from_gft(cfg: &Config, movie_id: u32) -> Result<Vec<Self>, FilmError> {
         let cache_file = format!("{}/screenings/{}.json", &cfg.state_directory, movie_id);
         if let Ok(true) = fs::exists(&cache_file) {
             let bytes =
                 fs::read(&cache_file).map_err(|_| FilmError::ReadError(cache_file.to_string()))?;
 
-            println!("Returning cached");
+            //println!("Returning cached - {}", movie_id);
             return serde_json::from_slice(&bytes[..])
                 .map_err(|_e| FilmError::ReadError(cache_file.clone()));
         };
-        println!("Reading from web");
+        println!("Reading from web - {}", movie_id);
         let screenings = fetch_screenings(movie_id)?;
         let mut result = vec![];
         for screening in screenings {
-            let (strand_name, strand) = cfg.strand_from_badges(screening.showing_badge_ids);
-            let (screen_name, screen) = cfg.screen_from_id(screening.screen_id);
+            let date = NaiveDate::parse_from_str(&screening.time[0..10], "%Y-%m-%d")
+                .map_err(|_| FilmError::BadDate(screening.time.clone()))?;
+            let start = NaiveTime::parse_from_str(&screening.time[11..16], "%H:%M")
+                .map_err(|_| FilmError::BadTime(screening.time.clone()))?;
+            let badge_ids: Vec<u32> = screening
+                .showing_badge_ids
+                .iter()
+                .map(|e| e.parse().unwrap_or(0))
+                .collect();
+            let staring = Self::csv(&screening.movie.staring.unwrap_or("".to_string()));
+            let genres = Self::csv(&screening.movie.all_genres.unwrap_or("".to_string()));
+            let rating_reasons =
+                Self::csv(&screening.movie.rating_reason.unwrap_or("".to_string()));
+            let screen_id = screening.screen_id.clone().parse().unwrap_or(0);
+            let (strand_name, strand) = cfg.strand_from_badges(badge_ids);
+            let (screen_name, screen) = cfg.screen_from_id(screen_id);
             result.push(Self {
-                date: screening.time.date(),
-                start: screening.time.time(),
-                end: screening.time.time()
-                    + chrono::TimeDelta::minutes(screening.movie.duration.into()),
-                id: screening.id,
-                title: screening.movie.name,
+                date,
+                start,
+                end: start + chrono::TimeDelta::minutes(screening.movie.duration.into()),
+                id: screening.id.parse().unwrap_or(0),
+                title: screening.movie.name.clone(),
                 strand: strand_name,
                 strand_id: strand.id,
                 strand_colour: strand.colour,
@@ -168,13 +194,13 @@ impl FestivalEvent {
                 screen_id: screen.id,
                 screen_colour: screen.colour,
                 attendees: vec![],
-                synopsis: screening.movie.synopsis,
-                staring: screening.movie.staring,
-                genres: screening.movie.all_genres,
-                director: screening.movie.directed_by,
-                rating: screening.movie.rating,
-                rating_reasons: screening.movie.rating_reason,
-                poster: screening.movie.poster_image,
+                synopsis: Self::markup(&screening.movie.synopsis)?,
+                staring,
+                genres,
+                director: screening.movie.directed_by.unwrap_or("".to_string()),
+                rating: screening.movie.rating.unwrap_or("".to_string()),
+                rating_reasons,
+                poster: screening.movie.poster_image.unwrap_or("".to_string()),
             });
         }
         fs::write(
@@ -214,35 +240,18 @@ pub fn deserialize_screenings(id: u32, json: &str) -> Result<Vec<Screening>, Fil
         .ok_or(FilmError::BadValueType("no internal data".to_string()))?;
     let mut result = vec![];
     for each in data {
-        let mut screening: Screening = serde_json::from_value(each.clone())
-            .map_err(|e| FilmError::BadValueType(format!("not a valid screening - {:?}", e)))?;
-        screening.movie_id = id;
+        let mut screening: Screening = serde_json::from_value(each.clone()).map_err(|e| {
+            FilmError::BadValueType(format!("not a valid screening - {:?} - {:?}", e, json))
+        })?;
+        screening.movie_id = Some(id);
         result.push(screening);
     }
     Ok(result)
 }
 
 pub fn fetch_ids() -> Result<String, FilmError> {
-    let graphql = r#"{"variables":{"titleClassIds":[196,211,229]},"query":"query ($titleClassIds: [ID]) { movies( limit: 255 titleClassIds: $titleClassIds ) { data { id name } } } "}"#;
-    fetch_from_gft(&graphql)
-}
-
-pub fn fetch_film(id: u32) -> Result<Movie, FilmError> {
-    let graphql = format!(
-        r#"{{ "variables": {{ "movieId": "{}" }}, "query": "query ($movieId: ID) {{ showingsForDate( movieId: $movieId ) {{ data {{ movie {{ id name posterImage synopsis starring directedBy duration allGenres rating ratingReason  }}  }}  }} }} " }} "#,
-        id,
-    );
-    deserialize_film(&fetch_from_gft(&graphql)?)
-}
-pub fn deserialize_film(json: &str) -> Result<Movie, FilmError> {
-    let value: Value = serde_json::from_str(json)
-        .map_err(|_e| FilmError::BadValueType("Decoding movie string".to_string()))?;
-    let movie_val = value
-        .pointer("/data/showingsForDate/data/0/movie")
-        .ok_or(FilmError::BadValueType("no internal data".to_string()))?;
-    let movie: Movie = serde_json::from_value(movie_val.clone())
-        .map_err(|e| FilmError::BadValueType(format!("not a valid movie - {:?}", e)))?;
-    Ok(movie)
+    let graphql = r#"{"variables":{"titleClassIds":[196,211,229],"type":"now-playing-and-coming-soon"},"query":"query ($titleClassIds: [ID], $type: String) { movies( limit: 500 type: $type titleClassIds: $titleClassIds ) { data { id name } } } "}"#;
+    fetch_from_gft(graphql)
 }
 
 pub fn id_map(cfg: &Config) -> Result<FilmMap, FilmError> {
@@ -285,93 +294,6 @@ pub fn load_ids(data: &str) -> Result<FilmMap, FilmError> {
         });
     Ok(map)
 }
-fn deserialize_markup<'de, D>(deserializer: D) -> Result<String, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let source = String::deserialize(deserializer)?;
-    replace_regex(&source).map_err(serde::de::Error::custom)
-}
-
-pub fn replace_regex(source: &str) -> Result<String, FilmError> {
-    use regex::Regex;
-    static PATTERNS: LazyLock<Vec<(Regex, &str)>> = LazyLock::new(|| {
-        [
-            (r"------*", "----"),
-            (r"<a [^>]+>(?<match>[^<]+)</a>", "($match)"),
-            (r"</?style>", ""),
-            (r"</?font[^>]*>", ""),
-            (r"</?[iI]/?>", "_"),
-            (r"<[bB]>(?<match>[^<]*)</[bB]>", "#strong[$match]"),
-            //(r"<[iI]>(?<match>[^<]*)</[iI]>", "#emph[$match]"),
-            (r"</?[^>]+/?>", ""),
-            (r"\$", r"\$"),
-            (r"\*", r"\*"),
-        ]
-        .iter()
-        .map(|(r, m)| (Regex::new(r).unwrap(), *m))
-        .collect()
-    });
-    Ok(PATTERNS.iter().fold(source.to_string(), |st, re| {
-        re.0.replace_all(&st, re.1).to_string()
-    }))
-}
-
-fn deserialize_csv<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let vec = String::deserialize(deserializer)?
-        .split(",")
-        .map(|e| e.trim().to_owned())
-        .collect();
-    Ok(vec)
-}
-fn deserialize_none_as_vec<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let opt: Option<String> = Option::deserialize(deserializer)?;
-    if opt.is_none() {
-        return Ok(vec![]);
-    }
-
-    let result = opt
-        .unwrap()
-        .split(",")
-        .map(|e| e.trim().to_owned())
-        .collect();
-    Ok(result)
-}
-fn deserialize_none_as_str<'de, D>(deserializer: D) -> Result<String, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    match Option::deserialize(deserializer)? {
-        Some(s) => Ok(s),
-        None => Ok("".to_string()),
-    }
-}
-fn deserialize_str_as_u32<'de, D>(deserializer: D) -> Result<u32, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let string: String = String::deserialize(deserializer)?;
-    string.parse().map_err(serde::de::Error::custom)
-}
-fn deserialize_v_of_str_as_u32<'de, D>(deserializer: D) -> Result<Vec<u32>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let vec: Vec<String> = Vec::deserialize(deserializer)?;
-    let mut result = vec![];
-    for each in vec {
-        if let Ok(elem) = each.parse() {
-            result.push(elem)
-        }
-    }
-    Ok(result)
-}
 
 fn deserialize_date<'de, D>(deserializer: D) -> Result<NaiveDate, D::Error>
 where
@@ -379,19 +301,6 @@ where
 {
     let buf = String::deserialize(deserializer)?;
     NaiveDate::parse_from_str(&buf, "%Y-%m-%d").map_err(serde::de::Error::custom)
-}
-
-fn deserialize_datetime<'de, D>(deserializer: D) -> Result<NaiveDateTime, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let buf = String::deserialize(deserializer)?;
-    let date =
-        NaiveDate::parse_from_str(&buf[..10], "%Y-%m-%d").map_err(serde::de::Error::custom)?;
-    let time =
-        NaiveTime::parse_from_str(&buf[11..16], "%H:%M").map_err(serde::de::Error::custom)?;
-    Ok(NaiveDateTime::new(date, time))
-    //Ok(NaiveDateTime::from_timestamp(0, 0))
 }
 
 fn deserialize_time<'de, D>(deserializer: D) -> Result<NaiveTime, D::Error>
@@ -404,7 +313,7 @@ where
 
 pub fn fetch_from_gft(graphql: &str) -> Result<String, FilmError> {
     let client = reqwest::blocking::Client::new();
-    client.post("https://www.glasgowfilm.org/graphql")
+    let rsp = client.post("https://www.glasgowfilm.org/graphql")
     .body(graphql.to_string())
     .header(reqwest::header::USER_AGENT,"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:122.0) Gecko/20100101 Firefox/122.0")
     .header(reqwest::header::ACCEPT,"*/*")
@@ -412,12 +321,15 @@ pub fn fetch_from_gft(graphql: &str) -> Result<String, FilmError> {
     .header("site-id","103")
     .header("client-type","consumer")
         .send().map_err(|e| {FilmError::WebError(format!("{}",e))})?
-        .text().map_err(|e| {FilmError::WebError(format!("{}",e))})
+        .text().map_err(|e| {FilmError::WebError(format!("{}",e))});
+    //println!("{:?}", &rsp);
+    rsp
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
     fn test_load_ids() {
         let map = load_ids(
             r#"{"data":{"movies":{"data":[{"id":"33606","name":"A Fox Under a Pink Moon"},{"id":"33607","name":"A Place For Her"}],"resultVersion":"3538720778"}}}"#,
@@ -427,14 +339,14 @@ mod tests {
         assert!(false);
     }
     #[test]
-    fn test_replace_regex() {
+    fn test_markup() {
         assert_eq!(
             "with _italics_ test".to_string(),
-            replace_regex("with <i>italics</i> test").unwrap()
+            FestivalEvent::markup("with <i>italics</i> test").unwrap()
         );
         assert_eq!(
             "with #strong[bold] test \\* and \\$".to_string(),
-            replace_regex("with <b>bold</B> test * and $").unwrap()
+            FestivalEvent::markup("with <b>bold</B> test * and $").unwrap()
         );
     }
 
@@ -454,17 +366,7 @@ mod tests {
                 priority: 2,
             },
         );
-        println!("{:?}", FestivalEvent::fetch_from_gft(&cfg, 33606));
-        println!("{:?}", FestivalEvent::fetch_from_gft(&cfg, 33606));
-        assert!(false);
-    }
-    fn test_fetch_film() {
-        let film = r#"{"data":{"showingsForDate":{"data":[{"movie":{"id":"33606","name":"A Fox Under a Pink Moon","posterImage":"bwotd0lk7ox5bsiyvyr96yw6ub9h","synopsis":"An intimate self-portrait of teenage artist \u003cb\u003eSoraya\u003c/b\u003e, an Afghan refugee, as she tries to travel from Iran to reach her mother in Austria. A raw and intelligent collaborative work between \u003cb\u003eSoraya\u003c/b\u003e – who shoots footage on her phone – and documentarian \u003cb\u003eMehrdad Oskouei\u003c/b\u003e (\u003ci\u003eStarless Dreams\u003c/i\u003e), it was shot over five years as she struggled to make it to Europe. In addition to video diaries charting \u003cb\u003eSoraya’s\u003c/b\u003e progress, the film features animation based on her own artwork and muses on themes including exile and domestic violence, while retaining a sense of her optimistic defiance in the face of life’s injustices.","starring":"","directedBy":"Mehrdad Oskouei","duration":76,"allGenres":"Documentary,Drama,Animation","rating":"N/C 15+","ratingReason":null}},{"movie":{"id":"33606","name":"A Fox Under a Pink Moon","posterImage":"bwotd0lk7ox5bsiyvyr96yw6ub9h","synopsis":"An intimate self-portrait of teenage artist \u003cb\u003eSoraya\u003c/b\u003e, an Afghan refugee, as she tries to travel from Iran to reach her mother in Austria. A raw and intelligent collaborative work between \u003cb\u003eSoraya\u003c/b\u003e – who shoots footage on her phone – and documentarian \u003cb\u003eMehrdad Oskouei\u003c/b\u003e (\u003ci\u003eStarless Dreams\u003c/i\u003e), it was shot over five years as she struggled to make it to Europe. In addition to video diaries charting \u003cb\u003eSoraya’s\u003c/b\u003e progress, the film features animation based on her own artwork and muses on themes including exile and domestic violence, while retaining a sense of her optimistic defiance in the face of life’s injustices.","starring":"","directedBy":"Mehrdad Oskouei","duration":76,"allGenres":"Documentary,Drama,Animation","rating":"N/C 15+","ratingReason":null}}],"resultVersion":"2787629567"}}}"#;
-        let screenings = r#"{"data":{"showingsForDate":{"data":[{"id":"388329","time":"2026-02-26T21:00:00Z","screenId":"175","showingBadgeIds":["827","864","852","549","560","562"]},{"id":"388644","time":"2026-02-27T15:00:00Z","screenId":"175","showingBadgeIds":["827","864","852","549","560","562"]}],"resultVersion":"2222388313"}}}"#;
-
-        println!("{:?}", &deserialize_film(film));
-        println!("{:?}", &deserialize_screenings(33606, screenings));
-        assert!(false);
+        let _event = FestivalEvent::fetch_from_gft(&cfg, 33606).unwrap();
     }
 
     fn test_fetch_ids() {

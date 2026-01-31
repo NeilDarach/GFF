@@ -4,6 +4,7 @@ mod films;
 use crate::args::{Args, GlobalOptions, Subcommands};
 use crate::config::Config;
 use crate::films::{FestivalEvent, fetch_ids, id_map, load_ids};
+use std::thread::sleep_ms;
 
 fn main() {
     let args = Args::read_args();
@@ -43,7 +44,13 @@ fn main() {
             println!("{:?}", &config);
         }
 
-        Subcommands::FetchScreenings {} => {}
+        Subcommands::FetchScreenings {} => {
+            let map = id_map(&config).unwrap();
+            for id in map.id_to_film.keys() {
+                FestivalEvent::fetch_from_gft(&config, *id).unwrap();
+                sleep_ms(250);
+            }
+        }
         Subcommands::List {} => {}
         Subcommands::Ids {} => {
             println!("{:?}", id_map(&config));
