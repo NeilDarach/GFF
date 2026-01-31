@@ -58,17 +58,17 @@ pub struct Config {
     directory: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Default)]
 pub struct StrandConfig {
-    pub id: u16,
+    pub id: u32,
     pub color: String,
-    pub priority: u8,
+    pub priority: u32,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct ScreenConfig {
-    pub id: u16,
-    pub color: u8,
+    pub id: u32,
+    pub color: u32,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -160,6 +160,26 @@ impl Config {
                 println!("Unable to access cfg_file.  Check permissions");
                 Err(ConfigError::PermissionError(cfg_file.clone()))
             }
+        }
+    }
+
+    pub fn screen_from_id(&self, id: u32) -> (String, ScreenConfig) {
+        let found = self.screens.iter().find(|(_k, v)| id == v.id);
+        match found {
+            Some((s, c)) => (s.clone(), c.clone()),
+            None => ("".to_string(), ScreenConfig::default()),
+        }
+    }
+
+    pub fn strand_from_badges(&self, badges: Vec<u32>) -> (String, StrandConfig) {
+        let found = self
+            .strands
+            .iter()
+            .filter(|(_k, v)| badges.contains(&v.id))
+            .min_by(|a, b| a.1.priority.cmp(&b.1.priority));
+        match found {
+            Some((s, c)) => (s.clone(), c.clone()),
+            None => ("".to_string(), StrandConfig::default()),
         }
     }
 }

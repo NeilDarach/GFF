@@ -1,3 +1,4 @@
+use crate::config::Config;
 use chrono::prelude::*;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
@@ -50,7 +51,7 @@ impl Debug for FilmMap {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct FestivalEvent {
     #[serde(
         deserialize_with = "deserialize_date",
@@ -70,14 +71,19 @@ pub struct FestivalEvent {
     pub id: u32,
     pub title: String,
     pub strand: String,
+    pub strand_id: u32,
+    pub strand_priority: u32,
+    pub strand_colour: String,
     pub screen: String,
+    pub screen_id: u32,
+    pub screen_colour: u32,
     pub attendees: Vec<String>,
     pub synopsis: String,
     pub staring: Vec<String>,
     pub genres: Vec<String>,
     pub director: String,
     pub rating: String,
-    pub rating_reason: String,
+    pub rating_reasons: Vec<String>,
     pub poster: String,
 }
 
@@ -95,6 +101,7 @@ struct Screening {
     #[serde(rename = "showingBadgeIds")]
     #[serde(deserialize_with = "deserialize_v_of_str_as_u32")]
     showing_badge_ids: Vec<u32>,
+    movie: Movie,
 }
 
 #[derive(Deserialize, Debug)]
@@ -123,11 +130,36 @@ struct Movie {
 }
 
 impl FestivalEvent {
-    pub fn fetch_from_gft(movie_id: u32) -> Result<Vec<Self>, FilmError> {
-        let movie = fetch_film(movie_id)?;
+    pub fn fetch_from_gft(cfg: &Config, movie_id: u32) -> Result<Vec<Self>, FilmError> {
         let screenings = fetch_screenings(movie_id)?;
-        let result = vec![];
-        for screening in screenings {}
+        let mut result = vec![];
+        for screening in screenings {
+            let (strand_name, strand) = cfg.strand_from_badges(screening.showing_badge_ids);
+            let (screen_name, screen) = cfg.screen_from_id(screening.screen_id);
+            result.push(Self {
+                date: screening.time.date(),
+                start: screening.time.time(),
+                end: screening.time.time()
+                    + chrono::TimeDelta::minutes(screening.movie.duration.into()),
+                id: screening.id,
+                title: screening.movie.name,
+                strand: strand_name,
+                strand_id: strand.id,
+                strand_colour: strand.color,
+                strand_priority: strand.priority,
+                screen: screen_name,
+                screen_id: screen.id,
+                screen_colour: screen.color,
+                attendees: vec![],
+                synopsis: screening.movie.synopsis,
+                staring: screening.movie.staring,
+                genres: screening.movie.all_genres,
+                director: screening.movie.directed_by,
+                rating: screening.movie.rating,
+                rating_reasons: screening.movie.rating_reason,
+                poster: screening.movie.poster_image,
+            });
+        }
         Ok(result)
     }
 }
@@ -147,10 +179,7 @@ where
 }
 
 pub fn fetch_screenings(id: u32) -> Result<Vec<Screening>, FilmError> {
-    let graphql = format!(
-        r#"{{ "variables": {{ "movieId": "{}" }}, "query": "query ($movieId: ID) {{ showingsForDate( movieId: $movieId ) {{ data {{ id time screenId showingBadgeIds }}  }} }}" }}"#,
-        id,
-    );
+    let graphql = r#"{"query": "query { showingsForDate(movieId: &) { data { movie { id name posterImage synopsis starring directedBy duration allGenres rating ratingReason } id time screenId showingBadgeIds }}}"}"#.replace("&",&format!("{}",id));
     deserialize_screenings(id, &fetch_from_gft(&graphql)?)
 }
 pub fn deserialize_screenings(id: u32, json: &str) -> Result<Vec<Screening>, FilmError> {
@@ -367,6 +396,23 @@ mod tests {
     }
 
     #[test]
+    fn test_fetch_from_gft() {
+        let mut cfg = Config::default();
+        cfg.screens.insert(
+            "GFT 1".to_string(),
+            crate::config::ScreenConfig { id: 175, color: 1 },
+        );
+        cfg.strands.insert(
+            "Official Selection".to_string(),
+            crate::config::StrandConfig {
+                id: 852,
+                color: "bc0e77".to_string(),
+                priority: 2,
+            },
+        );
+        println!("{:?}", FestivalEvent::fetch_from_gft(&cfg, 33606));
+        assert!(false);
+    }
     fn test_fetch_film() {
         let film = r#"{"data":{"showingsForDate":{"data":[{"movie":{"id":"33606","name":"A Fox Under a Pink Moon","posterImage":"bwotd0lk7ox5bsiyvyr96yw6ub9h","synopsis":"An intimate self-portrait of teenage artist \u003cb\u003eSoraya\u003c/b\u003e, an Afghan refugee, as she tries to travel from Iran to reach her mother in Austria. A raw and intelligent collaborative work between \u003cb\u003eSoraya\u003c/b\u003e – who shoots footage on her phone – and documentarian \u003cb\u003eMehrdad Oskouei\u003c/b\u003e (\u003ci\u003eStarless Dreams\u003c/i\u003e), it was shot over five years as she struggled to make it to Europe. In addition to video diaries charting \u003cb\u003eSoraya’s\u003c/b\u003e progress, the film features animation based on her own artwork and muses on themes including exile and domestic violence, while retaining a sense of her optimistic defiance in the face of life’s injustices.","starring":"","directedBy":"Mehrdad Oskouei","duration":76,"allGenres":"Documentary,Drama,Animation","rating":"N/C 15+","ratingReason":null}},{"movie":{"id":"33606","name":"A Fox Under a Pink Moon","posterImage":"bwotd0lk7ox5bsiyvyr96yw6ub9h","synopsis":"An intimate self-portrait of teenage artist \u003cb\u003eSoraya\u003c/b\u003e, an Afghan refugee, as she tries to travel from Iran to reach her mother in Austria. A raw and intelligent collaborative work between \u003cb\u003eSoraya\u003c/b\u003e – who shoots footage on her phone – and documentarian \u003cb\u003eMehrdad Oskouei\u003c/b\u003e (\u003ci\u003eStarless Dreams\u003c/i\u003e), it was shot over five years as she struggled to make it to Europe. In addition to video diaries charting \u003cb\u003eSoraya’s\u003c/b\u003e progress, the film features animation based on her own artwork and muses on themes including exile and domestic violence, while retaining a sense of her optimistic defiance in the face of life’s injustices.","starring":"","directedBy":"Mehrdad Oskouei","duration":76,"allGenres":"Documentary,Drama,Animation","rating":"N/C 15+","ratingReason":null}}],"resultVersion":"2787629567"}}}"#;
         let screenings = r#"{"data":{"showingsForDate":{"data":[{"id":"388329","time":"2026-02-26T21:00:00Z","screenId":"175","showingBadgeIds":["827","864","852","549","560","562"]},{"id":"388644","time":"2026-02-27T15:00:00Z","screenId":"175","showingBadgeIds":["827","864","852","549","560","562"]}],"resultVersion":"2222388313"}}}"#;
