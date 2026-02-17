@@ -26,7 +26,7 @@ let mygrid(lines) ={
 }
 
 [= Summary #suffix <summary>]
-for (day,showings) in json(inputFile) {
+for (day,showings) in json(inputFile).pairs().sorted(key: it => it.at(0)) {
   let pairs = showings.pairs()
   let filtered = (:)
   for (screen,films) in pairs {
