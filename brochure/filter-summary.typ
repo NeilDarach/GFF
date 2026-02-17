@@ -1,5 +1,5 @@
 #import "summary.typ": generate_summary
-#let version = read("summary-version.txt")
+#let version = read("summary-version.txt").trim()
 #let current_filter=state("current_filter","")
 #set page(
   flipped: true,
@@ -23,7 +23,7 @@
 #generate_summary("summary.json")
 #for(title,filter) in summaries.pairs() {
 pagebreak()
-current_filter.update("for "+ title)
+current_filter.update(" for "+title)
 counter(page).update(1)
 generate_summary("filter-summary.json",suffix: ("for "+ title),filter: filter)
 }
