@@ -134,33 +134,24 @@
           pname = "gff-scripts";
           version = "0.1.0";
           src = ./.;
-          buildInputs = with pkgs; [ nodejs typst bash openssh ];
+          buildInputs = with pkgs; [ jq coreutils curl typst bash openssh ];
           dontUnpack = true;
           dontPatch = true;
           dontConfigure = true;
           dontBuild = true;
 
           installPhase = ''
-            mkdir -p $out/bin $out/shared
+            mkdir -p $out/bin $out/brochure
             cp $src/scripts/* $out/bin
-            cp $src/brochure/* $out/shared
-            cp $src/updateCalendar/filter-summary.js $out/bin
+            cp $src/brochure/* $out/brochure
           '';
 
         };
-        gff-fetch-summary = pkgs.buildNpmPackage {
-          pname = "gff-fetch-summary";
-          version = "0.1.0";
-          src = ./gff-fetch-summary;
-          buildInputs = with pkgs; [ nodejs ];
-          npmDeps = pkgs.importNpmLock { npmRoot = ./gff-fetch-summary; };
-          npmConfigHook = pkgs.importNpmLock.npmConfigHook;
-        };
-        native = pkgs.callPackage ./calendar-access { };
-        pi =
+        calendar-access = pkgs.callPackage ./calendar-access { };
+        calendar-acccess-pi =
           (makePkgs "aarch64-unknown-linux-musl").callPackage ./calendar-access
           { };
-        x86 =
+        calendar-acccess-x86 =
           (makePkgs "x86_64-unknown-linux-musl").callPackage ./calendar-access
           { };
       });
