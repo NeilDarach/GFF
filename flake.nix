@@ -42,7 +42,7 @@
                   isStatic = true;
                 };
               };
-          in f { inherit pkgs makePkgs; });
+          in f { inherit nixpkgs pkgs makePkgs; });
     in {
       devShells = forEachSupportedSystem ({ pkgs, ... }: {
         default = pkgs.mkShell {
@@ -129,11 +129,12 @@
           };
       };
 
-      packages = forEachSupportedSystem ({ pkgs, makePkgs }: {
-        scripts = pkgs.stdenv.mkDerivation {
+      packages = forEachSupportedSystem ({ pkgs, makePkgs, nixpkgs, }: {
+        scripts = pkgs.stdenv.mkDerivation rec {
           pname = "gff-scripts";
-          version = "0.1.0";
+          version = "0.1.2";
           src = ./.;
+          nativeBuildInputs = with pkgs; [ makeWrapper ];
           buildInputs = with pkgs; [ jq coreutils curl typst bash openssh ];
           dontUnpack = true;
           dontPatch = true;
@@ -144,6 +145,13 @@
             mkdir -p $out/bin $out/brochure
             cp $src/scripts/* $out/bin
             cp $src/brochure/* $out/brochure
+          '';
+          postFixup = ''
+            for script in $out/bin/*.sh ; do
+              wrapProgram $script --set PATH '${
+                nixpkgs.lib.makeBinPath buildInputs
+              }'
+            done
           '';
 
         };
