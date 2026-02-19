@@ -131,38 +131,13 @@
       };
 
       packages = forEachSupportedSystem ({ pkgs, makePkgs, nixpkgs, }: {
-        scripts = pkgs.stdenv.mkDerivation rec {
-          pname = "gff-scripts";
-          version = "0.1.2";
-          src = ./.;
-          nativeBuildInputs = with pkgs; [ makeWrapper ];
-          buildInputs = with pkgs; [ jq coreutils curl typst bash openssh ];
-          dontUnpack = true;
-          dontPatch = true;
-          dontConfigure = true;
-          dontBuild = true;
-
-          installPhase = ''
-            mkdir -p $out/bin $out/brochure
-            cp $src/scripts/* $out/bin
-            cp $src/brochure/* $out/brochure
-          '';
-          postFixup = ''
-            for script in $out/bin/*.sh $out/bin/gff-* ; do
-              wrapProgram $script --set PATH '${
-                nixpkgs.lib.makeBinPath buildInputs
-              }'
-            done
-          '';
-
-        };
-
         default = let p = self.packages.${pkgs.stdenv.hostPlatform.system};
         in pkgs.symlinkJoin {
           name = "gff-combined";
           paths = with p; [ scripts calendar-access ];
         };
 
+        scripts = pkgs.callPackage ./scripts { };
         calendar-access = pkgs.callPackage ./calendar-access { };
         calendar-acccess-pi =
           (makePkgs "aarch64-unknown-linux-musl").callPackage ./calendar-access
