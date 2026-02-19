@@ -104,29 +104,30 @@
             description = "Where to keep json files";
           };
         };
-        config =
-          let gff = self.packages.${pkgs.stdenv.hostPlatform.system}.native;
-          in lib.mkIf config.gff.enable {
-            environment.systemPackages = [ gff ];
-            users.groups.gff = { };
-            users.users.gff = {
-              isSystemUser = true;
-              group = "gff";
-            };
-            networking.firewall.allowedTCPPorts = [ 3020 ];
-            systemd.services.gff = {
-              description =
-                "Synchronize two google calendars to show who is going to which films";
-              serviceConfig = {
-                Type = "simple";
-                ExecStart = "${gff}/bin/calendar-access";
-                EnvironmentFile = config.gff.envFile;
-                User = "gff";
-                Group = "gff";
-              };
-              wantedBy = [ "multi-user.target" ];
-            };
+        config = let
+          gff =
+            self.packages.${pkgs.stdenv.hostPlatform.system}.calendar-access;
+        in lib.mkIf config.gff.enable {
+          environment.systemPackages = [ gff ];
+          users.groups.gff = { };
+          users.users.gff = {
+            isSystemUser = true;
+            group = "gff";
           };
+          networking.firewall.allowedTCPPorts = [ 3020 ];
+          systemd.services.gff = {
+            description =
+              "Synchronize two google calendars to show who is going to which films";
+            serviceConfig = {
+              Type = "simple";
+              ExecStart = "${gff}/bin/calendar-access";
+              EnvironmentFile = config.gff.envFile;
+              User = "gff";
+              Group = "gff";
+            };
+            wantedBy = [ "multi-user.target" ];
+          };
+        };
       };
 
       packages = forEachSupportedSystem ({ pkgs, makePkgs, nixpkgs, }: {
@@ -147,7 +148,7 @@
             cp $src/brochure/* $out/brochure
           '';
           postFixup = ''
-            for script in $out/bin/*.sh ; do
+            for script in $out/bin/*.sh $out/bin/gff-* ; do
               wrapProgram $script --set PATH '${
                 nixpkgs.lib.makeBinPath buildInputs
               }'
@@ -155,6 +156,13 @@
           '';
 
         };
+
+        default = let p = self.packages.${pkgs.stdenv.hostPlatform.system};
+        in pkgs.symlinkJoin {
+          name = "gff-combined";
+          paths = with p; [ scripts calendar-access ];
+        };
+
         calendar-access = pkgs.callPackage ./calendar-access { };
         calendar-acccess-pi =
           (makePkgs "aarch64-unknown-linux-musl").callPackage ./calendar-access
