@@ -42,7 +42,7 @@
                   isStatic = true;
                 };
               };
-          in f { inherit pkgs makePkgs; });
+          in f { inherit nixpkgs pkgs makePkgs; });
     in {
       devShells = forEachSupportedSystem ({ pkgs, ... }: {
         default = pkgs.mkShell {
@@ -104,63 +104,45 @@
             description = "Where to keep json files";
           };
         };
-        config =
-          let gff = self.packages.${pkgs.stdenv.hostPlatform.system}.native;
-          in lib.mkIf config.gff.enable {
-            environment.systemPackages = [ gff ];
-            users.groups.gff = { };
-            users.users.gff = {
-              isSystemUser = true;
-              group = "gff";
-            };
-            networking.firewall.allowedTCPPorts = [ 3020 ];
-            systemd.services.gff = {
-              description =
-                "Synchronize two google calendars to show who is going to which films";
-              serviceConfig = {
-                Type = "simple";
-                ExecStart = "${gff}/bin/calendar-access";
-                EnvironmentFile = config.gff.envFile;
-                User = "gff";
-                Group = "gff";
-              };
-              wantedBy = [ "multi-user.target" ];
-            };
+        config = let
+          gff =
+            self.packages.${pkgs.stdenv.hostPlatform.system}.calendar-access;
+        in lib.mkIf config.gff.enable {
+          environment.systemPackages = [ gff ];
+          users.groups.gff = { };
+          users.users.gff = {
+            isSystemUser = true;
+            group = "gff";
           };
+          networking.firewall.allowedTCPPorts = [ 3020 ];
+          systemd.services.gff = {
+            description =
+              "Synchronize two google calendars to show who is going to which films";
+            serviceConfig = {
+              Type = "simple";
+              ExecStart = "${gff}/bin/calendar-access";
+              EnvironmentFile = config.gff.envFile;
+              User = "gff";
+              Group = "gff";
+            };
+            wantedBy = [ "multi-user.target" ];
+          };
+        };
       };
 
-      packages = forEachSupportedSystem ({ pkgs, makePkgs }: {
-        scripts = pkgs.stdenv.mkDerivation {
-          pname = "gff-scripts";
-          version = "0.1.0";
-          src = ./.;
-          buildInputs = with pkgs; [ nodejs typst bash openssh ];
-          dontUnpack = true;
-          dontPatch = true;
-          dontConfigure = true;
-          dontBuild = true;
-
-          installPhase = ''
-            mkdir -p $out/bin $out/shared
-            cp $src/scripts/* $out/bin
-            cp $src/brochure/* $out/shared
-            cp $src/updateCalendar/filter-summary.js $out/bin
-          '';
-
+      packages = forEachSupportedSystem ({ pkgs, makePkgs, nixpkgs, }: {
+        default = let p = self.packages.${pkgs.stdenv.hostPlatform.system};
+        in pkgs.symlinkJoin {
+          name = "gff-combined";
+          paths = with p; [ scripts calendar-access ];
         };
-        gff-fetch-summary = pkgs.buildNpmPackage {
-          pname = "gff-fetch-summary";
-          version = "0.1.0";
-          src = ./gff-fetch-summary;
-          buildInputs = with pkgs; [ nodejs ];
-          npmDeps = pkgs.importNpmLock { npmRoot = ./gff-fetch-summary; };
-          npmConfigHook = pkgs.importNpmLock.npmConfigHook;
-        };
-        native = pkgs.callPackage ./calendar-access { };
-        pi =
+
+        scripts = pkgs.callPackage ./scripts { };
+        calendar-access = pkgs.callPackage ./calendar-access { };
+        calendar-acccess-pi =
           (makePkgs "aarch64-unknown-linux-musl").callPackage ./calendar-access
           { };
-        x86 =
+        calendar-acccess-x86 =
           (makePkgs "x86_64-unknown-linux-musl").callPackage ./calendar-access
           { };
       });
