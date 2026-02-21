@@ -8,18 +8,19 @@ STATE_DIR="$(readlink -f "$1")"
 
 [[ ! -z "${TEMP_DIR}" ]] || exit 1
 trap 'rm -rf -- "${TEMP_DIR}"' exit
-if [[ -f "version.txt" ]]; then
-    cp version.txt "${TEMP_DIR}"
+if [[ -f "${STATE_DIR}/version.txt" ]]; then
+    VER=$(cat "${STATE_DIR}/version.txt")
+    VER=$((VER + 1))
+    echo "${VER}" >"${TEMP_DIR}/version.txt"
 else
     echo "1" >"${TEMP_DIR}/version.txt"
 fi
 cp "${SCRIPT_DIR}/../brochure"/*.typ "${TEMP_DIR}"
 cp "${SCRIPT_DIR}/../brochure"/*.jpg "${TEMP_DIR}"
 ln -s "${STATE_DIR}/posters" "${TEMP_DIR}/posters"
-ls -ltr "${TEMP_DIR}"
-ls -ltr "${TEMP_DIR}/posters"
 
 jq -L"${SCRIPT_DIR}" --slurpfile ref "${SCRIPT_DIR}/../brochure/ref.json" 'import "./gff" as gff; . | gff::generateSummary' "${STATE_DIR}/showings.json" >"${TEMP_DIR}/summary.json"
 jq -L"${SCRIPT_DIR}" --slurpfile ref "${SCRIPT_DIR}/../brochure/ref.json" 'import "./gff" as gff; . | gff::generateBrochure' "${STATE_DIR}/showings.json" >"${TEMP_DIR}/brochure.json"
 typst compile "${TEMP_DIR}/brochure.typ"
 cp "${TEMP_DIR}/brochure.pdf" "${STATE_DIR}"
+cp "${TEMP_DIR}/version.txt" "${STATE_DIR}"

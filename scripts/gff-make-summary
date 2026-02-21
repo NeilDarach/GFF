@@ -8,8 +8,10 @@ STATE_DIR="$(readlink -f "$1")"
 
 [[ ! -z "${TEMP_DIR}" ]] || exit 1
 trap 'rm -rf -- "${TEMP_DIR}"' exit
-if [[ -f "summary-version.txt" ]]; then
-    cp summary-version.txt "${TEMP_DIR}"
+if [[ -f "${STATE_DIR}/summary-version.txt" ]]; then
+    VER=$(cat "${STATE_DIR}/summary-version.txt")
+    VER=$((VER + 1))
+    echo "${VER}" >"${TEMP_DIR}/summary-version.txt"
 else
     echo "1" >"${TEMP_DIR}/summary-version.txt"
 fi
@@ -20,3 +22,4 @@ cp "${STATE_DIR}/filter-summary.json" "${TEMP_DIR}"
 
 typst compile "${TEMP_DIR}/filter-summary.typ"
 cp "${TEMP_DIR}/filter-summary.pdf" "${STATE_DIR}"
+cp "${TEMP_DIR}/summary-version.txt" "${STATE_DIR}"
