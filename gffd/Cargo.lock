@@ -409,6 +409,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.18",
+ "ucfirst",
 ]
 
 [[package]]
@@ -1493,6 +1494,12 @@ name = "try-lock"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
+
+[[package]]
+name = "ucfirst"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "193bdd69c004059d7514e7f1528ddc46b2de3b5335d43d76e1b8dfaf218f2942"
 
 [[package]]
 name = "unicode-ident"

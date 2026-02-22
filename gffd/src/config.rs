@@ -61,6 +61,10 @@ pub struct Config {
     pub names: HashMap<String, String>,
     #[serde(skip)]
     directory: String,
+    #[serde(skip)]
+    debug: bool,
+    #[serde(skip)]
+    live: bool,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -129,6 +133,8 @@ impl Default for Config {
             directory: ".".to_string(),
             cookie: "".to_string(),
             names: HashMap::default(),
+            debug: false,
+            live: false,
         }
     }
 }
@@ -149,6 +155,18 @@ impl Config {
         {
             self.calendar_auth_file = abspath.to_owned();
         }
+    }
+    pub fn set_debug(&mut self) {
+        self.debug = true;
+    }
+    pub fn is_debug(&self) -> bool {
+        self.debug
+    }
+    pub fn set_live(&mut self) {
+        self.live = true;
+    }
+    pub fn is_live(&self) -> bool {
+        self.live
     }
     pub fn read_config_file(directory: &String) -> Result<Self, ConfigError> {
         if let Ok(true) = fs::exists(directory) {

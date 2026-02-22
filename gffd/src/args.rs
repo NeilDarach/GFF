@@ -21,6 +21,10 @@ pub struct GlobalOptions {
     pub calendar_main_id: String,
     #[arg(long = "fiter", short = 'f', default_value_t = ("").to_string())]
     pub calendar_filter_id: String,
+    #[arg(long = "verbose", short = 'v', default_value_t = false)]
+    pub debug: bool,
+    #[arg(long = "live", short = 'l', default_value_t = false)]
+    pub live: bool,
 }
 
 #[derive(Debug, Subcommand, Clone)]
@@ -32,7 +36,11 @@ pub enum Subcommands {
         callback_url: String,
     },
     Ids {},
-    FetchScreenings {},
+    Showings {},
+    FetchScreenings {
+        #[arg(long = "id", short = 'i', default_value_t = ("").to_string())]
+        id: String,
+    },
     ShowConfig {},
     List {},
 }

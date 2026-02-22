@@ -11,3 +11,4 @@ reqwest = { version = "0.13.1", features = ["blocking"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 thiserror = "2.0.18"
+ucfirst = "0.4.1"
