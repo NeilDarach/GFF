@@ -95,6 +95,17 @@ pub struct FestivalEvent {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct SummaryEntry {
+    pub start: String,
+    pub title: String,
+    pub strand: String,
+    pub duration: u32,
+    pub color: String,
+    pub id: String,
+    pub day: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct BrochureEntry {
     pub name: String,
     pub id: String,
@@ -119,6 +130,36 @@ pub struct Showing {
     time: String,
     date: String,
     datetime: String,
+}
+
+impl SummaryEntry {
+    pub fn from_event(events: &[FestivalEvent]) -> Vec<(String, String, Self)> {
+        events
+            .iter()
+            .map(|e| {
+                let time = e.start.format("%H:%M").to_string();
+                let date = e.date.format("%Y-%m-%d").to_string();
+                let day = e.date.format("%A").to_string();
+                let mut duration = (e.end - e.start).num_minutes();
+                if duration < 0 {
+                    duration += 24 * 60;
+                }
+                (
+                    date,
+                    e.screen.clone(),
+                    SummaryEntry {
+                        start: time.clone(),
+                        title: e.title.clone(),
+                        strand: e.strand.clone(),
+                        color: e.strand_colour.clone(),
+                        id: format!("{}", e.movie_id.clone()),
+                        duration: duration.try_into().unwrap(),
+                        day,
+                    },
+                )
+            })
+            .collect::<Vec<_>>()
+    }
 }
 
 impl BrochureEntry {

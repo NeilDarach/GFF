@@ -37,6 +37,7 @@ pub enum Subcommands {
     },
     Ids {},
     Showings {},
+    Summary {},
     FetchScreenings {
         #[arg(long = "id", short = 'i', default_value_t = ("").to_string())]
         id: String,

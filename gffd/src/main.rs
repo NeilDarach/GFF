@@ -3,7 +3,8 @@ mod config;
 mod films;
 use crate::args::{Args, GlobalOptions, Subcommands};
 use crate::config::Config;
-use crate::films::{fetch_ids, id_map, load_ids, BrochureEntry, FestivalEvent};
+use crate::films::{fetch_ids, id_map, load_ids, BrochureEntry, FestivalEvent, SummaryEntry};
+use std::collections::BTreeMap;
 
 fn main() {
     let args = Args::read_args();
@@ -69,6 +70,25 @@ fn main() {
             }
         }
         Subcommands::List {} => {}
+        Subcommands::Summary {} => {
+            let map = id_map(&config).unwrap();
+            let summary_map: BTreeMap<String, BTreeMap<String, Vec<SummaryEntry>>> =
+                BTreeMap::new();
+            let summary = map
+                .id_to_film
+                .keys()
+                .map(|id| FestivalEvent::fetch_from_gft(&config, *id).unwrap())
+                .flat_map(|event| SummaryEntry::from_event(&event))
+                .fold(summary_map, |mut m, (date, screen, entry)| {
+                    m.entry(date)
+                        .or_default()
+                        .entry(screen)
+                        .or_default()
+                        .push(entry);
+                    m
+                });
+            println!("{}", serde_json::to_string_pretty(&summary).unwrap());
+        }
         Subcommands::Showings {} => {
             let map = id_map(&config).unwrap();
             let mut showings = map
