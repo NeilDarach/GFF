@@ -29,3 +29,4 @@ map([.id, .time, ($scr[.screenId]|tojson), (.movie.name|tojson), .movie.duration
 = Create the input for the brochure
 jq --slurpfile ref ref.json 'import "gff" as gff; . | gff::generateBrochure ' showings-array.json | jq -s "."
 
+gffd is the new rust implementation of update-calendar

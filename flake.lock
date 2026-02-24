@@ -803,10 +803,10 @@
     "secrets": {
       "flake": false,
       "locked": {
-        "lastModified": 1769273515,
-        "narHash": "sha256-QOCBaFNtcxU2Y9FCu7NrUdw+iFBOyfi2AmcKDn+sOY8=",
+        "lastModified": 1771955264,
+        "narHash": "sha256-LXcpbZRukTptZthpC8hsLeyFgVaFdUvIUWQgoripqnA=",
         "ref": "refs/heads/main",
-        "rev": "6a678ffaee8d36ef5cc1d20dae7f02ade44be1cf",
+        "rev": "791601fe989f4c8e83c2263392ca238777766ba2",
         "shallow": true,
         "type": "git",
         "url": "ssh://git@github.com/NeilDarach/secrets.git"

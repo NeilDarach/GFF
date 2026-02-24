@@ -324,6 +324,10 @@ impl Events {
         return result;
     }
 
+    pub async fn recolour_events(&mut self,locations: Vec<String>) -> Result<HashMap<String,Vec<String>>,Error> {
+        println!("The colous I have are {:?}",locations);
+        Ok(HashMap::new())
+    }
     pub async fn fetch_summary(&self) -> Result<HashMap<String,HashMap<String,Vec<Summary>>>,Error> {
         let mut by_date = HashMap::new();
         for (_key,evt) in &self.main_events {

@@ -6,9 +6,21 @@ edition = "2024"
 [dependencies]
 chrono = "0.4.43"
 clap = { version = "4.5.55", features = ["derive"] }
+google-calendar3 = { version = "7.0.0", features = [ "yup-oauth2" ] }
+hyper = { version = "1.8.1", features = ["client", "http1"] }
+hyper-rustls = { version = "0.27.7", features = ["ring", "rustls-native-certs"] }
+hyper-util = { version = "0.1.20", features = ["client", "http1", "tokio"] }
 regex = "1.12.2"
 reqwest = { version = "0.13.1", features = ["blocking"] }
+rustls = { version = "0.23.36", features = ["ring"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 thiserror = "2.0.18"
+tokio = { version = "1.49.0", features = ["net", "rt", "rt-multi-thread"] }
 ucfirst = "0.4.1"
+uuid = "1.21.0"
+yup-oauth2 = { version = "12.1.2", features = ["hyper-tls", "service-account"] }
+
+
+#[patch.crates-io]
+#google-calendar3 = { path = "./google-calendar3" }

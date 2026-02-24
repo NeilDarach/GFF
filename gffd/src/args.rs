@@ -38,12 +38,14 @@ pub enum Subcommands {
     Ids {},
     Showings {},
     Summary {},
+    FilterSummary {},
     FetchScreenings {
         #[arg(long = "id", short = 'i', default_value_t = ("").to_string())]
         id: String,
     },
     ShowConfig {},
     List {},
+    Upload {},
 }
 
 impl Args {

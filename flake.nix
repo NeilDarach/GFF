@@ -59,16 +59,16 @@
             })
           ];
           shellHook = ''
-            export COOKIE="$(${pkgs.sops}/bin/sops --extract '["gff-website-cookie"]' --decrypt ${secrets}/secrets.yaml)"
+            export COOKIE="$(${pkgs.sops}/bin/sops --extract '["gff"]["website-cookie"]' --decrypt ${secrets}/secrets.yaml)"
             if [[ ! -f "google-auth.json" ]]; then
-              ${pkgs.sops}/bin/sops --extract '["gff-google-calendar-auth"]' --decrypt "${secrets}/secrets.yaml" > google-auth.json
+              ${pkgs.sops}/bin/sops --extract '["gff"]["google-calendar-auth"]' --decrypt "${secrets}/secrets.yaml" > google-auth.json
             fi
             if [[ ! -d gff-fetch-summary/node_modules ]]; then
               (cd gff-fetch-summary; npm install)
             fi
             export GFF_AUTH="$PWD/google-auth.json"
-            export GFF_FILTER_ID="$(${pkgs.sops}/bin/sops --extract '["gff-filter-id"]' --decrypt ${secrets}/secrets.yaml)"
-            export GFF_FULL_ID="$(${pkgs.sops}/bin/sops --extract '["gff-full-id"]' --decrypt ${secrets}/secrets.yaml)"
+            export GFF_FILTER_ID="$(${pkgs.sops}/bin/sops --extract '["gff"]["test-filter-id"]' --decrypt ${secrets}/secrets.yaml)"
+            export GFF_FULL_ID="$(${pkgs.sops}/bin/sops --extract '["gff"]["test-full-id"]' --decrypt ${secrets}/secrets.yaml)"
             export GFF_CALLBACK="https://goip.org.uk/gff/change"
           '';
         };

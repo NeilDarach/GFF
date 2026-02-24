@@ -1,12 +1,18 @@
 mod args;
+mod calendar;
 mod config;
 mod films;
 use crate::args::{Args, GlobalOptions, Subcommands};
+use crate::calendar::filter_summary;
 use crate::config::Config;
-use crate::films::{fetch_ids, id_map, load_ids, BrochureEntry, FestivalEvent, SummaryEntry};
+use crate::films::{BrochureEntry, FestivalEvent, SummaryEntry, fetch_ids, id_map, load_ids};
 use std::collections::BTreeMap;
 
-fn main() {
+#[tokio::main]
+async fn main() {
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .unwrap();
     let args = Args::read_args();
     let GlobalOptions {
         ref directory,
@@ -35,10 +41,10 @@ fn main() {
         config.set_auth_file(auth_file);
     }
     if !calendar_main_id.is_empty() {
-        config.calendar_main_id = calendar_main_id.clone();
+        config.calendar_main_id = calendar_main_id.clone().trim().to_owned();
     }
     if !calendar_filter_id.is_empty() {
-        config.calendar_filter_id = calendar_filter_id.clone();
+        config.calendar_filter_id = calendar_filter_id.clone().trim().to_owned();
     }
     match args.subcommand {
         Subcommands::Serve { port, callback_url } => {
@@ -53,6 +59,19 @@ fn main() {
             println!("{:?}", &config);
         }
 
+        Subcommands::Upload {} => {
+            let map = id_map(&config).unwrap();
+            let events = map
+                .id_to_film
+                .keys()
+                .filter_map(|e| FestivalEvent::fetch_from_gft(&config, *e).ok())
+                .collect::<Vec<_>>();
+            let (added, deleted) = upload_events(&config, events).await;
+            println!(
+                "Upload done.  Uploaded {} events and deleted {}",
+                added, deleted
+            );
+        }
         Subcommands::FetchScreenings { id } => {
             if let Ok(id) = id.parse::<u32>() {
                 println!(
@@ -70,6 +89,14 @@ fn main() {
             }
         }
         Subcommands::List {} => {}
+        Subcommands::FilterSummary {} => {
+            let entries = filter_summary(&config)
+                .await
+                .into_iter()
+                .map(|e| e)
+                .collect::<Vec<_>>();
+            println!("{}", serde_json::to_string_pretty(&entries).unwrap());
+        }
         Subcommands::Summary {} => {
             let map = id_map(&config).unwrap();
             let summary_map: BTreeMap<String, BTreeMap<String, Vec<SummaryEntry>>> =

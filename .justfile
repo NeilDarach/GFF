@@ -1,5 +1,5 @@
 default:
-    echo "Not a command""
+    @just --list
 
 rebuild:
     ./scripts/getIds.sh > ./brochure/ids.json
@@ -20,16 +20,16 @@ summaries:
 
 publish-summaries:
     #!/usr/bin/env bash
-    VER=$((1 + $(ssh root@goip.org.uk "ls -tr /opt/nginx/www/gff-2026-summaries-v?*.pdf | tail -1 | sed -e 's/.*-v\(.\+\).pdf/\1/'")))
+    VER=$((1 + $(ssh goip.org.uk "bash -c 'ls -tr /strongStateDir/nginx/gff-2026-summaries-v?*.pdf' | tail -1 | sed -e 's/.*-v\(.\+\).pdf/\1/'")))
     echo ${VER} > ./brochure/summary-version.txt
     just summaries
-    scp ./brochure/filter-summary.pdf "root@goip.org.uk:/opt/nginx/www/gff-2026-summaries-v${VER}.pdf"
-    ssh root@goip.org.uk "ln -sf gff-2026-summaries-v${VER}.pdf /opt/nginx/www/gff-2026-summaries.pdf"
+    cat ./brochure/filter-summary.pdf | ssh goip.org.uk "sudo bash -c 'cat > /strongStateDir/nginx/gff-2026-summaries-v${VER}.pdf'"
+    ssh goip.org.uk "sudo ln -sf gff-2026-summaries-v${VER}.pdf /strongStateDir/nginx/gff-2026-summaries.pdf"
 
 publish:
     #!/usr/bin/env bash
-    VER=$((1 + $(ssh root@goip.org.uk "ls -tr /opt/nginx/www/gff-2026-v?*.pdf | tail -1 | sed -e 's/.*-v\(.\+\).pdf/\1/'")))
+    VER=$((1 + $(ssh goip.org.uk "bash -c 'ls -tr /strongStateDir/nginx/gff-2026-v?*.pdf' | tail -1 | sed -e 's/.*-v\(.\+\).pdf/\1/'")))
     echo ${VER} > ./brochure/version.txt
     just brochure
-    scp ./brochure/brochure.pdf "root@goip.org.uk:/opt/nginx/www/gff-2026-v${VER}.pdf"
-    ssh root@goip.org.uk "ln -sf gff-2026-v${VER}.pdf /opt/nginx/www/gff-2026.pdf"
+    cat ./brochure/brochure.pdf | ssh goip.org.uk "sudo bash -c 'cat > /strongStateDir/nginx/gff-2026-v${VER}.pdf'"
+    ssh goip.org.uk "sudo ln -sf gff-2026-v${VER}.pdf /strongStateDir/nginx/gff-2026.pdf"

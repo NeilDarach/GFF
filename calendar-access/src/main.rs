@@ -1,19 +1,19 @@
+use crate::calendar::Summary;
 use futures::join;
 use google_calendar3::Error;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::Client;
 use hyper::Server;
 use hyper::{Body, Method, Request, Response, StatusCode};
+use std::collections::HashMap;
 use std::convert::Infallible;
-use std::sync::Arc;
+use std::env::var;
 use std::fs;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
 use tokio::{task, time};
 use yup_oauth2::parse_service_account_key;
-use std::env::var;
-use crate::calendar::Summary;
-use std::collections::HashMap;
 
 mod calendar;
 
@@ -47,10 +47,25 @@ async fn route(
             let json = serde_json::to_string_pretty(&*event_struct).unwrap();
             *response.body_mut() = Body::from(json);
         }
+        (&Method::POST, "/setColours") => {
+            let mut event_struct = state.lock().await;
+            //event_struct.scan_calendar().await.unwrap();
+            let bytes: hyper::body::Bytes = hyper::body::to_bytes(req.into_body()).await.unwrap();
+            let ueights = bytes.to_vec();
+            let colours: Vec<String> =
+                serde_json::from_str(&String::from_utf8(ueights).unwrap()[..]).unwrap();
+            let recoloured: HashMap<String, Vec<String>> =
+                event_struct.recolour_events(colours).await.unwrap();
+            let json = serde_json::to_string_pretty(&recoloured).unwrap();
+            *response.body_mut() = Body::from(json);
+        }
         (&Method::GET, "/summary") => {
             let mut event_struct = state.lock().await;
-            if event_struct.is_empty() { let _ = event_struct.scan_calendar().await; }
-            let summary : HashMap<String,HashMap<String,Vec<Summary>>> = event_struct.fetch_summary().await.unwrap();
+            if event_struct.is_empty() {
+                let _ = event_struct.scan_calendar().await;
+            }
+            let summary: HashMap<String, HashMap<String, Vec<Summary>>> =
+                event_struct.fetch_summary().await.unwrap();
             let json = serde_json::to_string_pretty(&summary).unwrap();
             *response.body_mut() = Body::from(json);
         }
@@ -65,8 +80,10 @@ async fn route(
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     // Load the secrets
-    let service_cred_location = var("GFF_AUTH").expect("GFF_AUTH should be set to locate the credentials file");
-    let service_credentials =  fs::read_to_string(service_cred_location).expect("Credentials file is missing");
+    let service_cred_location =
+        var("GFF_AUTH").expect("GFF_AUTH should be set to locate the credentials file");
+    let service_credentials =
+        fs::read_to_string(service_cred_location).expect("Credentials file is missing");
     let service_key =
         parse_service_account_key(service_credentials).expect("bad gmail credentials");
 
