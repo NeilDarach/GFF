@@ -60,7 +60,7 @@ async function changeColor(eventId,colorId) {
     eventId: eventId,
     resource: { colorId: colorId }
   });
-  console.log(res);
+  //console.log(res);
 }
 
 async function setExtendedProperties(eventId,dict) {
@@ -106,14 +106,17 @@ async function recolor() {
         if (event.colorId != colorId) {
     console.log(`Changing ${event.summary} in ${event.location} to ${colorId}`);
     changeColor(event.id,colorId); 
-    await sleep(300);
+    await sleep(900);
         }
     var date = event.start.dateTime.substring(0,10);
         screen = event.location;
+        if (summary[date][screen] == undefined) {
+            console.log(`No screen entry for ${event.summary}`)
+        } else {
         entry = summary[date][screen].find((each) => each["title"].toUpperCase() == event.summary.toUpperCase());
         if (entry == undefined) {
             console.log(`No entry for ${event.summary}`);
-        }
+        } else {
     dict = {"strand": (entry["strand"] ?? "none"),
             color: entry["color"],
         screen: screen};
@@ -123,6 +126,7 @@ async function recolor() {
                 ((prop["screen"] ?? "") != dict["screen"])) {
     console.log(`Changing ${event.summary} extended properties to ${JSON.stringify(dict)}`);
     setExtendedProperties(event.id,dict); 
+            } }
     await sleep(400);
 
 

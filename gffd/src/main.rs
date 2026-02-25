@@ -104,8 +104,8 @@ async fn main() {
             let summary = map
                 .id_to_film
                 .keys()
-                .map(|id| FestivalEvent::fetch_from_gft(&config, *id).unwrap())
-                .flat_map(|event| SummaryEntry::from_event(&event))
+                .map(|id| (id, FestivalEvent::fetch_from_gft(&config, *id).unwrap()))
+                .flat_map(|(id, event)| SummaryEntry::from_event(*id, &event))
                 .fold(summary_map, |mut m, (date, screen, entry)| {
                     m.entry(date)
                         .or_default()
@@ -121,8 +121,8 @@ async fn main() {
             let mut showings = map
                 .id_to_film
                 .keys()
-                .map(|id| FestivalEvent::fetch_from_gft(&config, *id).unwrap())
-                .map(|event| BrochureEntry::from_event(&event))
+                .map(|id| (id, FestivalEvent::fetch_from_gft(&config, *id).unwrap()))
+                .map(|(id, event)| BrochureEntry::from_event(*id, &event))
                 .collect::<Vec<_>>();
             showings.sort_by(|a, b| a.sortname.cmp(&b.sortname));
             println!("{}", serde_json::to_string_pretty(&showings).unwrap());
