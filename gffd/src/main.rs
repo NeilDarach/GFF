@@ -3,9 +3,9 @@ mod calendar;
 mod config;
 mod films;
 use crate::args::{Args, GlobalOptions, Subcommands};
-use crate::calendar::filter_summary;
+use crate::calendar::{filter_summary, sync_events, upload_events};
 use crate::config::Config;
-use crate::films::{BrochureEntry, FestivalEvent, SummaryEntry, fetch_ids, id_map, load_ids};
+use crate::films::{fetch_ids, id_map, load_ids, BrochureEntry, FestivalEvent, SummaryEntry};
 use std::collections::BTreeMap;
 
 #[tokio::main]
@@ -58,6 +58,17 @@ async fn main() {
         Subcommands::ShowConfig {} => {
             println!("{:?}", &config);
         }
+        Subcommands::Sync {} => {
+            let map = id_map(&config).unwrap();
+            let events = map
+                .id_to_film
+                .keys()
+                .filter_map(|e| FestivalEvent::fetch_from_gft(&config, *e).ok())
+                .flatten()
+                .collect::<Vec<_>>();
+            let (modified, deleted) = sync_events(&config, &events[..]).await;
+            println!("Sync done.  Modified {}, deleted {}", modified, deleted);
+        }
 
         Subcommands::Upload {} => {
             let map = id_map(&config).unwrap();
@@ -65,8 +76,9 @@ async fn main() {
                 .id_to_film
                 .keys()
                 .filter_map(|e| FestivalEvent::fetch_from_gft(&config, *e).ok())
+                .flatten()
                 .collect::<Vec<_>>();
-            let (added, deleted) = upload_events(&config, events).await;
+            let (added, deleted) = upload_events(&config, &events[..]).await;
             println!(
                 "Upload done.  Uploaded {} events and deleted {}",
                 added, deleted
@@ -74,18 +86,21 @@ async fn main() {
         }
         Subcommands::FetchScreenings { id } => {
             if let Ok(id) = id.parse::<u32>() {
-                println!(
-                    "{}",
-                    serde_json::to_string_pretty(
-                        &FestivalEvent::fetch_from_gft(&config, id).unwrap()
-                    )
-                    .unwrap()
-                );
+                let evt = tokio::task::spawn_blocking(move || {
+                    FestivalEvent::fetch_from_gft(&config, id).unwrap()
+                })
+                .await
+                .unwrap();
+                println!("{}", serde_json::to_string_pretty(&evt).unwrap());
             } else {
-                let map = id_map(&config).unwrap();
-                for id in map.id_to_film.keys() {
-                    FestivalEvent::fetch_from_gft(&config, *id).unwrap();
-                }
+                tokio::task::spawn_blocking(move || {
+                    let map = id_map(&config).unwrap();
+                    for id in map.id_to_film.keys() {
+                        FestivalEvent::fetch_from_gft(&config, *id).unwrap();
+                    }
+                })
+                .await
+                .unwrap();
             }
         }
         Subcommands::List {} => {}
@@ -128,7 +143,10 @@ async fn main() {
             println!("{}", serde_json::to_string_pretty(&showings).unwrap());
         }
         Subcommands::Ids {} => {
-            println!("{:?}", id_map(&config));
+            let map = tokio::task::spawn_blocking(move || id_map(&config))
+                .await
+                .unwrap();
+            println!("{:?}", map);
         }
     };
 }

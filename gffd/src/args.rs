@@ -46,6 +46,7 @@ pub enum Subcommands {
     ShowConfig {},
     List {},
     Upload {},
+    Sync {},
 }
 
 impl Args {

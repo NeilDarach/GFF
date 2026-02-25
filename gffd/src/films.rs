@@ -57,7 +57,7 @@ impl Debug for FilmMap {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct FestivalEvent {
     #[serde(
         deserialize_with = "deserialize_date",
@@ -421,7 +421,9 @@ pub fn deserialize_screenings(id: u32, json: &str) -> Result<Vec<Screening>, Fil
         })?;
         screening.movie_id = Some(id);
         screening.movie = Some(movie.clone());
-        result.push(screening);
+        if dbg!(&screening.time).starts_with("2026") {
+            result.push(screening);
+        }
     }
     Ok(result)
 }
@@ -468,7 +470,8 @@ pub fn load_ids(data: &str) -> Result<FilmMap, FilmError> {
                 .get("id")
                 .and_then(|v| v.as_str())
                 .and_then(|v| v.parse().ok());
-            let name = e.get("name").and_then(|v| v.as_str());
+
+            let name = dbg!(e).get("name").and_then(|v| v.as_str());
             let dates = e.get("datesWithShowing").and_then(|v| v.as_array());
             if !dates.unwrap().is_empty() {
                 m.add(name.unwrap(), id.unwrap());
