@@ -133,7 +133,7 @@ pub struct Showing {
 }
 
 impl SummaryEntry {
-    pub fn from_event(events: &[FestivalEvent]) -> Vec<(String, String, Self)> {
+    pub fn from_event(_id: u32, events: &[FestivalEvent]) -> Vec<(String, String, Self)> {
         events
             .iter()
             .map(|e| {
@@ -188,7 +188,7 @@ impl BrochureEntry {
         ucfirst::ucfirst(title)
     }
 
-    pub fn from_event(events: &[FestivalEvent]) -> Self {
+    pub fn from_event(id: u32, events: &[FestivalEvent]) -> Self {
         let showings = events
             .iter()
             .map(|e| {
@@ -204,7 +204,8 @@ impl BrochureEntry {
                 }
             })
             .collect::<Vec<_>>();
-        let movie = events.first().unwrap();
+        let debug = format!("{}: {:?}", id, events);
+        let movie = events.first().expect(&debug);
         let sortname = Self::sortname(&movie.title);
         let mut duration = (movie.end - movie.start).num_minutes();
         if duration < 0 {
@@ -237,10 +238,10 @@ pub struct Screening {
     screen_id: String,
     #[serde(rename = "showingBadgeIds")]
     showing_badge_ids: Vec<String>,
-    movie: Movie,
+    movie: Option<Movie>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug)]
 struct Movie {
     id: String,
     name: String,
@@ -307,8 +308,11 @@ impl FestivalEvent {
                     println!("Reading from web - {}", movie_id);
                 }
                 let screenings = fetch_screenings(cfg, movie_id)?;
+                dbg!(&screenings);
                 let mut result = vec![];
                 for screening in screenings {
+                    let movie = screening.movie.as_ref().cloned().unwrap();
+                    dbg!(&movie);
                     let date = NaiveDate::parse_from_str(&screening.time[0..10], "%Y-%m-%d")
                         .map_err(|_| FilmError::BadDate(screening.time.clone()))?;
                     let start = NaiveTime::parse_from_str(&screening.time[11..16], "%H:%M")
@@ -318,20 +322,25 @@ impl FestivalEvent {
                         .iter()
                         .map(|e| e.parse().unwrap_or(0))
                         .collect();
-                    let starring = Self::csv(&screening.movie.starring.unwrap_or("".to_string()));
-                    let genres = Self::csv(&screening.movie.all_genres.unwrap_or("".to_string()));
-                    let rating_reasons =
-                        Self::csv(&screening.movie.rating_reason.unwrap_or("".to_string()));
+                    let starring = Self::csv(&movie.starring.unwrap_or("".to_string()));
+                    let genres = Self::csv(&movie.all_genres.unwrap_or("".to_string()));
+                    let rating_reasons = Self::csv(
+                        &screening
+                            .movie
+                            .unwrap()
+                            .rating_reason
+                            .unwrap_or("".to_string()),
+                    );
                     let screen_id = screening.screen_id.clone().parse().unwrap_or(0);
                     let (strand_name, strand) = cfg.strand_from_badges(badge_ids);
                     let (screen_name, screen) = cfg.screen_from_id(screen_id);
                     result.push(Self {
                         date,
                         start,
-                        end: start + chrono::TimeDelta::minutes(screening.movie.duration.into()),
+                        end: start + chrono::TimeDelta::minutes(movie.duration.into()),
                         screening_id: screening.id.parse().unwrap_or(0),
                         movie_id,
-                        title: screening.movie.name.clone(),
+                        title: movie.name.clone(),
                         strand: strand_name,
                         strand_id: strand.id,
                         strand_colour: strand.colour,
@@ -340,13 +349,13 @@ impl FestivalEvent {
                         screen_id: screen.id,
                         screen_colour: screen.colour,
                         attendees: vec![],
-                        synopsis: Self::markup(&screening.movie.synopsis)?,
+                        synopsis: Self::markup(&movie.synopsis)?,
                         starring,
                         genres,
-                        director: screening.movie.directed_by.unwrap_or("".to_string()),
-                        rating: screening.movie.rating.unwrap_or("".to_string()),
+                        director: (movie.directed_by.unwrap_or("".to_string())).clone(),
+                        rating: movie.rating.unwrap_or("".to_string()),
                         rating_reasons,
-                        poster: screening.movie.poster_image.unwrap_or("".to_string()),
+                        poster: movie.poster_image.unwrap_or("".to_string()),
                     });
                 }
                 fs::write(
@@ -381,7 +390,7 @@ where
 }
 
 pub fn fetch_screenings(cfg: &Config, id: u32) -> Result<Vec<Screening>, FilmError> {
-    let graphql = r#"{"query": "query { showingsForDate(movieId: &) { data { movie { id name posterImage synopsis starring directedBy duration allGenres rating ratingReason } id time screenId showingBadgeIds }}}"}"#.replace("&",&format!("{}",id));
+    let graphql = r#"{"query": "query { movie(id: &) { id name posterImage synopsis starring directedBy duration allGenres rating ratingReason showings { id screenId time showingBadgeIds } }}}"}"#.replace("&",&format!("{}",id));
     let from_gft = fetch_from_gft(&graphql)?;
     if cfg.is_debug() {
         println!("{}", &from_gft);
@@ -391,29 +400,42 @@ pub fn fetch_screenings(cfg: &Config, id: u32) -> Result<Vec<Screening>, FilmErr
 pub fn deserialize_screenings(id: u32, json: &str) -> Result<Vec<Screening>, FilmError> {
     let value: Value = serde_json::from_str(json)
         .map_err(|_e| FilmError::BadValueType("Decoding screening string".to_string()))?;
-    let data = value
-        .pointer("/data/showingsForDate/data")
-        .and_then(|v| v.as_array())
+    let movie_value = value
+        .pointer("/data/movie")
         .ok_or(FilmError::BadValueType("no internal data".to_string()))?;
+
+    let movie: Movie = serde_json::from_value(movie_value.clone()).map_err(|e| {
+        FilmError::BadValueType(format!("not a valid movie - {:?} - {:?}", e, json))
+    })?;
+    let data = movie_value
+        .as_object()
+        .ok_or(FilmError::BadValueType("no internal data".to_string()))?;
+    let screenings = data
+        .get("showings")
+        .and_then(|v| v.as_array())
+        .ok_or(FilmError::BadValueType("no showings".to_string()))?;
     let mut result = vec![];
-    for each in data {
+    for each in screenings {
         let mut screening: Screening = serde_json::from_value(each.clone()).map_err(|e| {
             FilmError::BadValueType(format!("not a valid screening - {:?} - {:?}", e, json))
         })?;
         screening.movie_id = Some(id);
+        screening.movie = Some(movie.clone());
         result.push(screening);
     }
     Ok(result)
 }
 
 pub fn fetch_ids() -> Result<String, FilmError> {
-    let graphql = r#"{"variables":{"titleClassIds":[196,211,229],"type":"now-playing-and-coming-soon"},"query":"query ($titleClassIds: [ID], $type: String) { movies( limit: 500 type: $type titleClassIds: $titleClassIds ) { data { id name } } } "}"#;
+    let graphql = r#"{"query":"query { movies( limit: 800 titleClassIds: [196,229,211] ) { data { id name showingStatus datesWithShowing} } } "}"#;
     fetch_from_gft(graphql)
 }
 
 pub fn id_map(cfg: &Config) -> Result<FilmMap, FilmError> {
     let cache_file = format!("{}/ids.json", &cfg.state_directory);
-    if let Ok(true) = fs::exists(&cache_file) {
+    if !cfg.is_live()
+        && let Ok(true) = fs::exists(&cache_file)
+    {
         let bytes =
             fs::read(&cache_file).map_err(|_| FilmError::ReadError(cache_file.to_string()))?;
 
@@ -447,7 +469,10 @@ pub fn load_ids(data: &str) -> Result<FilmMap, FilmError> {
                 .and_then(|v| v.as_str())
                 .and_then(|v| v.parse().ok());
             let name = e.get("name").and_then(|v| v.as_str());
-            m.add(name.unwrap(), id.unwrap());
+            let dates = e.get("datesWithShowing").and_then(|v| v.as_array());
+            if !dates.unwrap().is_empty() {
+                m.add(name.unwrap(), id.unwrap());
+            }
             m
         });
     Ok(map)
@@ -486,7 +511,7 @@ pub fn fetch_image(cfg: &Config, key: &str) -> Result<(), FilmError> {
 
 pub fn fetch_from_gft(graphql: &str) -> Result<String, FilmError> {
     let client = reqwest::blocking::Client::new();
-    let rsp = client.post("https://www.glasgowfilm.org/graphql")
+    client.post("https://www.glasgowfilm.org/graphql")
     .body(graphql.to_string())
     .header(reqwest::header::USER_AGENT,"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:122.0) Gecko/20100101 Firefox/122.0")
     .header(reqwest::header::ACCEPT,"*/*")
@@ -494,9 +519,7 @@ pub fn fetch_from_gft(graphql: &str) -> Result<String, FilmError> {
     .header("site-id","103")
     .header("client-type","consumer")
         .send().map_err(|e| {FilmError::WebError(format!("{}",e))})?
-        .text().map_err(|e| {FilmError::WebError(format!("{}",e))});
-    //println!("{:?}", &rsp);
-    rsp
+        .text().map_err(|e| {FilmError::WebError(format!("{}",e))})
 }
 
 #[cfg(test)]
