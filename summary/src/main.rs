@@ -1,104 +1,51 @@
-use serde_json::Value;
 use typst_bake::{IntoDict, IntoValue};
 
 #[derive(IntoValue, IntoDict)]
 struct Summary {
     pub version: u32,
-    pub dates: Vec<String>,
-    pub screens: Vec<Screen>,
+    pub json: String,
+    pub colours: Vec<Pair>,
+    pub names: Vec<Pair>,
 }
 
 #[derive(IntoValue)]
-struct Screen {
-    pub names: Vec<String>,
-    pub showings: Vec<Vec<Showing>>,
+struct Pair {
+    key: String,
+    value: String,
 }
 
-#[derive(IntoValue)]
-struct Showing {
-    pub start: String,
-    pub title: String,
-    pub strand: String,
-    pub duration: u32,
-    pub color: String,
-    pub id: Option<String>,
-    pub day: String,
-    pub attendees: Vec<String>,
-}
-
-impl Into<Showing> for Value {
-    fn into(self) -> Showing {
-        let map = self.as_object().unwrap();
-        let start = map.get("start").unwrap().as_str().unwrap().to_owned();
-        let title = map.get("title").unwrap().as_str().unwrap().to_owned();
-        let strand = map.get("strand").unwrap().as_str().unwrap().to_owned();
-        let color = map.get("color").unwrap().as_str().unwrap().to_owned();
-        let day = map.get("day").unwrap().as_str().unwrap().to_owned();
-        let duration = map
-            .get("duration")
-            .unwrap()
-            .as_number()
-            .unwrap()
-            .as_u64()
-            .unwrap() as u32;
-        let attendees = map
-            .get("attendees")
-            .unwrap()
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|e: &Value| e.as_str().unwrap().to_owned())
-            .collect::<Vec<String>>();
-        Showing {
-            id: None,
-            start,
-            title,
-            strand,
-            color,
-            day,
-            duration,
-            attendees,
-        }
-    }
-}
-impl From<Value> for Screen {
-    fn from(val: Value) -> Self {
-        let map = val.as_object().unwrap();
-        let names = map.keys().cloned().collect();
-        let showings = map
-            .values()
-            .map(|e: &Value| {
-                e.as_array()
-                    .unwrap()
-                    .iter()
-                    .map(|ea| Into::<Showing>::into(ea.clone()))
-                    .collect()
-            })
-            .collect::<Vec<Vec<Showing>>>();
-        Screen { names, showings }
-    }
-}
-impl From<Value> for Summary {
-    fn from(val: Value) -> Self {
-        let map = val.as_object().unwrap();
-        let dates = map.keys().cloned().collect();
-        let screens = map
-            .values()
-            .map(|e: &Value| Into::<Screen>::into(e.clone()))
-            .collect::<Vec<Screen>>();
-        Summary {
-            version: 0,
-            dates,
-            screens,
+impl From<(&str, &str)> for Pair {
+    fn from(value: (&str, &str)) -> Self {
+        Self {
+            key: value.0.to_owned(),
+            value: value.1.to_owned(),
         }
     }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let json = std::fs::read("./summary.json").unwrap();
-    let data: Value = serde_json::from_slice(&json[..]).unwrap();
-    let mut summary: Summary = data.into();
-    summary.version = 1;
+    let json = String::from_utf8(std::fs::read("./summary.json").unwrap()).unwrap();
+    let colours = vec![
+        ("GFT 1", "344798").into(),
+        ("GFT 2", "6596d0").into(),
+        ("GFT 3", "d9cdcc").into(),
+        ("Odeon 10", "946c0c").into(),
+        ("Odeon 11", "a30053").into(),
+        ("Odeon 12", "f2c170").into(),
+    ];
+    let names = vec![
+        ("M", "Marion").into(),
+        ("N", "Neil").into(),
+        ("Pt", "Patrick").into(),
+        ("Pm", "Pam").into(),
+        ("V", "Vanessa").into(),
+    ];
+    let summary = Summary {
+        version: 1,
+        json,
+        colours,
+        names,
+    };
     let pdf = typst_bake::document!("summary.typ")
         .with_inputs(summary)
         .to_pdf()?;

@@ -1,4 +1,7 @@
 #import sys: inputs
+#let make_dict(arr) = {
+arr.fold((:),(d,assoc) => { d.insert(assoc.at("key"),assoc.at("value")); d})
+}
 #let person_summary(names: ()) = {
 let rowOffset=41pt
 let screenCol=10%
@@ -26,18 +29,13 @@ let mygrid(lines) ={
       }
 }
 
-  let colours = ("GFT 1": "344798", 
-  "GFT 2": "6596d0",
-  "GFT 3": "d9cdcc",
-  "Odeon 10": "946c0c",
-  "Odeon 11": "a30053",
-  "Odeon 12": "f2c170")
+  let colours = make_dict(inputs.colours)
 
 [= Summary <summary>]
-for (date,screens) in inputs.dates.zip(inputs.screens).sorted(key: it => it.at(0)) {
+for (date,showings) in json(bytes(inputs.json)).pairs().sorted(key: it => it.at(0)) {
   let by_person = names.pairs().fold((:),(dict,(init,name)) => {dict.insert(name,()); dict})
   let day = ""
-  for (screen,films) in screens.names.zip(screens.showings) {
+  for (screen,films) in showings.pairs() {
     for film in films {
       day = film.day
   film.insert("screen", screen)
@@ -75,10 +73,6 @@ block(breakable: false)[
   )
 #set par(justify: false,leading: 0.55em)
 #set text(font: "Source Serif 4",size: 0.8em)
-#let names=(M: "Marion",
-N:"Neil",
-Pt:"Patrick",
-Pm:"Pam",
-V:"Vanessa")
+#let names=make_dict(inputs.names)
 #counter(page).update(1)
 #person_summary(names: names)
