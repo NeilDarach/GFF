@@ -29,10 +29,10 @@ let mygrid(lines) ={
       }
 }
 
-  let colours = make_dict(inputs.colours)
+  let colours =inputs.colours
 
 [= Summary <summary>]
-for (date,showings) in json(bytes(inputs.json)).pairs().sorted(key: it => it.at(0)) {
+for (date,showings) in inputs.summary.pairs().sorted(key: it => it.at(0)) {
   let by_person = names.pairs().fold((:),(dict,(init,name)) => {dict.insert(name,()); dict})
   let day = ""
   for (screen,films) in showings.pairs() {
@@ -73,6 +73,6 @@ block(breakable: false)[
   )
 #set par(justify: false,leading: 0.55em)
 #set text(font: "Source Serif 4",size: 0.8em)
-#let names=make_dict(inputs.names)
+#let names=inputs.names
 #counter(page).update(1)
 #person_summary(names: names)
