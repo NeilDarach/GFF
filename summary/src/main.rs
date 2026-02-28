@@ -1,81 +1,50 @@
+mod typst_map;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::ops::{Deref, DerefMut};
-use typst::foundations as t;
-use typst_bake::__internal::typst::foundations as tb;
 use typst_bake::{IntoDict, IntoValue};
-use typst_library::foundations as tl;
+use typst_map::TypstMap;
 
-#[derive(Clone, Default, Serialize, Deserialize)]
-struct TypstHash<T: tb::IntoValue + Clone>(HashMap<String, T>);
-
-impl<T: tb::IntoValue + Clone> DerefMut for TypstHash<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-impl<T: tb::IntoValue + Clone> Deref for TypstHash<T> {
-    type Target = HashMap<String, T>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
+#[derive(IntoValue, IntoDict, Serialize, Deserialize)]
+struct Brochure {
+    pub entries: Vec<BrochureEntry>,
+    pub banner: Vec<u8>,
+    pub version: String,
 }
 
-impl<T: tb::IntoValue + Clone> From<HashMap<String, T>> for TypstHash<T> {
-    fn from(value: HashMap<String, T>) -> Self {
-        TypstHash(value)
-    }
+#[derive(IntoValue, Serialize, Deserialize)]
+struct BrochureEntry {
+    pub name: String,
+    pub id: String,
+    pub sortname: String,
+    pub showings: Vec<BrochureShowing>,
+    pub duration: u64,
+    pub synopsis: String,
+    pub starring: String,
+    pub genres: String,
+    #[serde(rename = "directedBy")]
+    pub directed_by: String,
+    pub rating: String,
+    #[serde(rename = "ratingReason")]
+    pub rating_reason: String,
+    pub strand: String,
+    pub poster: String,
+    #[serde(skip)]
+    pub poster_bytes: Option<Vec<u8>>,
 }
 
-impl<T: tb::IntoValue + Clone> t::IntoValue for TypstHash<T> {
-    fn into_value(self) -> tb::Value {
-        let d = {
-            #[allow(unused_mut)]
-            let mut map = tl::IndexMap::default();
-            for (k, v) in self.iter() {
-                map.insert(
-                    k.clone().into(),
-                    tl::IntoValue::into_value(tb::IntoValue::into_value(v.clone())),
-                );
-            }
-            tl::Dict::from(map)
-        };
-        tb::Value::Dict(d)
-    }
-}
-
-impl<T: tb::IntoValue + Clone> TypstHash<T> {
-    #[inline]
-    #[must_use]
-    pub fn into_dict(self) -> tb::Dict {
-        {
-            #[allow(unused_mut)]
-            let mut map = tl::IndexMap::default();
-            for (k, v) in self.iter() {
-                map.insert(
-                    k.clone().into(),
-                    tl::IntoValue::into_value(tb::IntoValue::into_value(v.clone())),
-                );
-            }
-
-            tl::Dict::from(map)
-        }
-    }
-}
-
-impl<T: t::IntoValue + Clone> From<TypstHash<T>> for t::Dict {
-    fn from(value: TypstHash<T>) -> Self {
-        value.into_dict()
-    }
+#[derive(IntoValue, Serialize, Deserialize)]
+struct BrochureShowing {
+    pub screen: String,
+    pub time: String,
+    pub date: String,
+    pub datetime: String,
 }
 
 #[derive(IntoValue, IntoDict)]
 struct Summary {
-    pub version: u32,
-    pub summary: TypstHash<TypstHash<Vec<Showing>>>,
-    pub colours: TypstHash<String>,
-    pub names: TypstHash<String>,
+    pub version: String,
+    pub summary: TypstMap<TypstMap<Vec<Showing>>>,
+    pub colours: TypstMap<String>,
+    pub names: TypstMap<String>,
 }
 
 #[derive(Clone, IntoValue, Serialize, Deserialize)]
@@ -89,46 +58,58 @@ struct Showing {
     day: String,
     attendees: Vec<String>,
 }
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let colours = vec![
-        ("GFT 1", "344798"),
-        ("GFT 2", "6596d0"),
-        ("GFT 3", "d9cdcc"),
-        ("Odeon 10", "946c0c"),
-        ("Odeon 11", "a30053"),
-        ("Odeon 12", "f2c170"),
-    ];
-    let colours = colours
-        .into_iter()
-        .map(|(k, v)| (k.to_owned(), v.to_owned()))
-        .collect::<HashMap<String, String>>()
+    /*
+        let colours: TypstMap<String> = vec![
+            ("GFT 1", "344798"),
+            ("GFT 2", "6596d0"),
+            ("GFT 3", "d9cdcc"),
+            ("Odeon 10", "946c0c"),
+            ("Odeon 11", "a30053"),
+            ("Odeon 12", "f2c170"),
+        ]
         .into();
-    let names = vec![
-        ("M", "Marion"),
-        ("N", "Neil"),
-        ("Pt", "Patrick"),
-        ("Pm", "Pam"),
-        ("V", "Vanessa"),
-    ];
-    let names = names
-        .into_iter()
-        .map(|(k, v)| (k.to_owned(), v.to_owned()))
-        .collect::<HashMap<String, String>>()
+        let names: TypstMap<String> = vec![
+            ("M", "Marion"),
+            ("N", "Neil"),
+            ("Pt", "Patrick"),
+            ("Pm", "Pam"),
+            ("V", "Vanessa"),
+        ]
         .into();
-    let json = std::fs::read("summary.json").unwrap();
-    let summary_data: TypstHash<TypstHash<Vec<Showing>>> =
-        serde_json::from_slice(&json[..]).unwrap();
-    let summary = Summary {
-        version: 1,
-        summary: summary_data,
-        colours,
-        names,
+        let json = std::fs::read("summary.json").unwrap();
+        let summary_data: TypstMap<TypstMap<Vec<Showing>>> =
+            serde_json::from_slice(&json[..]).unwrap();
+        let summary = Summary {
+            version: 1,
+            summary: summary_data,
+            colours,
+            names,
+        };
+        let pdf = typst_bake::document!("summary.typ")
+            .with_inputs(summary)
+            .to_pdf()?;
+    */
+    let json = std::fs::read("brochure.json").unwrap();
+    let mut entries: Vec<BrochureEntry> = serde_json::from_slice(&json[..]).unwrap();
+    let banner = std::fs::read("banner.jpg").unwrap();
+    load_pictures(&mut entries);
+    let brochure = Brochure {
+        entries,
+        banner,
+        version: "1".to_owned(),
     };
-    let pdf = typst_bake::document!("summary.typ")
-        .with_inputs(summary)
+    let pdf = typst_bake::document!("brochure.typ")
+        .with_inputs(brochure)
         .to_pdf()?;
-    save_pdf(&pdf, "output.pdf")
+    save_pdf(&pdf, "brochure.pdf")
+}
+
+fn load_pictures(entries: &mut Vec<BrochureEntry>) {
+    for entry in entries {
+        let data = std::fs::read(&entry.poster).unwrap();
+        entry.poster_bytes = Some(data);
+    }
 }
 
 fn save_pdf(data: &[u8], filename: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -141,7 +122,7 @@ fn save_pdf(data: &[u8], filename: &str) -> Result<(), Box<dyn std::error::Error
 #[cfg(test)]
 mod test {
     use super::*;
-    fn save_svg(data: &Vec<String>, filename: &str) -> Result<(), Box<dyn std::error::Error>> {
+    fn save_svg(data: &[String], filename: &str) -> Result<(), Box<dyn std::error::Error>> {
         let out_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
         std::fs::write(out_dir.join(filename), data.first().unwrap())?;
         println!("Generated {} ({} bytes)", filename, data.len());
@@ -150,11 +131,11 @@ mod test {
 
     #[derive(IntoDict, IntoValue, Serialize, Deserialize)]
     struct Sample {
-        hash: TypstHash<u32>,
+        hash: TypstMap<u32>,
     }
     #[test]
     fn test_serialize_myhash() {
-        let mut hash = TypstHash::default();
+        let mut hash = TypstMap::default();
         hash.insert("Key".to_string(), 4);
         let json = serde_json::to_string_pretty(&hash).unwrap();
         assert_eq!("{\n  \"Key\": 4\n}", json);
@@ -162,12 +143,12 @@ mod test {
 
     #[test]
     fn test_deserialize_myhash() {
-        let hash: TypstHash<u32> = serde_json::from_str("{\n  \"Key\": 4\n}").unwrap();
+        let hash: TypstMap<u32> = serde_json::from_str("{\n  \"Key\": 4\n}").unwrap();
         assert_eq!(4, *hash.get("Key").unwrap());
     }
     #[test]
     fn test_dump_sample() {
-        let hash: TypstHash<u32> = serde_json::from_str("{\n  \"Key\": 4\n}").unwrap();
+        let hash: TypstMap<u32> = serde_json::from_str("{\n  \"Key\": 4\n}").unwrap();
         let sample = Sample { hash };
         let svg = typst_bake::document!("dump.typ")
             .with_inputs(sample)
@@ -179,7 +160,7 @@ mod test {
     #[test]
     fn test_read_summary() {
         let json = std::fs::read("summary.json").unwrap();
-        let data: TypstHash<TypstHash<Vec<Showing>>> = serde_json::from_slice(&json[..]).unwrap();
+        let data: TypstMap<TypstMap<Vec<Showing>>> = serde_json::from_slice(&json[..]).unwrap();
         let pdf = typst_bake::document!("dump.typ")
             .with_inputs(data)
             .to_pdf()
